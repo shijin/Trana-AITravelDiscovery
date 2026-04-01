@@ -1,0 +1,179 @@
+Fix the chat refinement screen so it responds intelligently to 
+user intent using keyword-based mock responses. 
+
+PROBLEM: Currently the chat returns the same hardcoded response 
+regardless of what the user types. When a user says "I want to 
+travel to Kerala" it still shows Coorg, Hampi, Pondicherry.
+
+SOLUTION: Build a keyword-intent matching system in the chat handler.
+
+In the chat component, replace the single hardcoded mock response 
+with this intent detection function:
+
+function detectIntent(message) {
+  const msg = message.toLowerCase();
+  
+  if (msg.includes('kerala')) {
+    return {
+      text: "Kerala is a wonderful choice! Based on what you told me earlier, here are 3 Kerala destinations that suit your style:",
+      destinations: [
+        { id: 'munnar', name: 'Munnar', state: 'Kerala', 
+          reason: 'Quiet tea estates, misty hills, minimal walking — perfect for switching off.' },
+        { id: 'alleppey', name: 'Alleppey', state: 'Kerala', 
+          reason: 'Backwater houseboat experience, serene and low-effort — exactly the calm you are looking for.' },
+        { id: 'varkala', name: 'Varkala', state: 'Kerala', 
+          reason: 'Cliff-top beach, uncrowded, great food — without the Goa chaos.' }
+      ]
+    }
+  }
+  
+  if (msg.includes('goa')) {
+    return {
+      text: "If Goa is calling, here are the sides of Goa that match your preference for quiet and local:",
+      destinations: [
+        { id: 'north-goa', name: 'North Goa', state: 'Goa', 
+          reason: 'Vibrant, lively beaches — best for groups and nightlife seekers.' },
+        { id: 'south-goa', name: 'South Goa', state: 'Goa', 
+          reason: 'Quieter, cleaner beaches — much better match for your calm preference.' },
+        { id: 'panjim', name: 'Panjim Old Town', state: 'Goa', 
+          reason: 'Portuguese architecture, cafe culture, and zero beach noise.' }
+      ]
+    }
+  }
+  
+  if (msg.includes('budget') || msg.includes('cheap') || 
+      msg.includes('affordable') || msg.includes('less money') ||
+      msg.includes('low budget')) {
+    return {
+      text: "Got it — let me show you destinations that fit within ₹15,000 all-inclusive:",
+      destinations: [
+        { id: 1, name: 'Hampi', state: 'Karnataka', 
+          reason: 'UNESCO heritage, stunning landscapes — total trip under ₹12,000 from most cities.' },
+        { id: 'mysuru', name: 'Mysuru', state: 'Karnataka', 
+          reason: 'Palace city with excellent food — comfortable 3-day trip under ₹10,000.' },
+        { id: 'pondicherry', name: 'Pondicherry', state: 'Tamil Nadu', 
+          reason: 'French Quarter + beach — budget-friendly with hostels under ₹800/night.' }
+      ]
+    }
+  }
+  
+  if (msg.includes('beach') || msg.includes('sea') || 
+      msg.includes('ocean') || msg.includes('coastal')) {
+    return {
+      text: "Beach destinations that are less crowded and more your pace:",
+      destinations: [
+        { id: 3, name: 'Pondicherry', state: 'Tamil Nadu', 
+          reason: 'Rocky beach + French Quarter — calm, walkable, excellent food.' },
+        { id: 'varkala', name: 'Varkala', state: 'Kerala', 
+          reason: 'Cliff-top beach town — far less chaotic than Goa.' },
+        { id: 'gokarna', name: 'Gokarna', state: 'Karnataka', 
+          reason: 'Temple town with pristine beaches — offbeat and peaceful.' }
+      ]
+    }
+  }
+
+  if (msg.includes('cold') || msg.includes('hill') || 
+      msg.includes('mountain') || msg.includes('snow') ||
+      msg.includes('cool') || msg.includes('cold weather')) {
+    return {
+      text: "For cooler temperatures and mountain air, these fit your profile:",
+      destinations: [
+        { id: 1, name: 'Coorg', state: 'Karnataka', 
+          reason: 'Misty Western Ghats — cool even in summer, peaceful coffee estates.' },
+        { id: 'munnar', name: 'Munnar', state: 'Kerala', 
+          reason: 'Tea plantations at high altitude — genuinely cool and refreshing.' },
+        { id: 5, name: 'Meghalaya', state: 'Northeast', 
+          reason: 'Living root bridges and cloud forests — unlike anything in India.' }
+      ]
+    }
+  }
+  
+  if (msg.includes('couple') || msg.includes('romantic') || 
+      msg.includes('honeymoon') || msg.includes('partner') ||
+      msg.includes('anniversary')) {
+    return {
+      text: "For a romantic trip that does not feel like every other couple holiday:",
+      destinations: [
+        { id: 2, name: 'Hampi', state: 'Karnataka', 
+          reason: 'Dramatic boulder landscapes and sunset views — romantic without the cliché.' },
+        { id: 3, name: 'Pondicherry', state: 'Tamil Nadu', 
+          reason: 'Evening walks through French Quarter, fresh seafood, boutique stays.' },
+        { id: 'coorg-couple', name: 'Coorg', state: 'Karnataka', 
+          reason: 'Private estate stays surrounded by coffee and spice plantations.' }
+      ]
+    }
+  }
+
+  if (msg.includes('quick') || msg.includes('weekend') || 
+      msg.includes('2 days') || msg.includes('short') ||
+      msg.includes('2-3 days')) {
+    return {
+      text: "For a quick 2–3 day escape without long travel:",
+      destinations: [
+        { id: 4, name: 'Mysuru', state: 'Karnataka', 
+          reason: '3 hours from Bengaluru — palace, markets, food, done in 2 days.' },
+        { id: 1, name: 'Coorg', state: 'Karnataka', 
+          reason: '4 hours from Bengaluru — arrive, breathe, leave refreshed.' },
+        { id: 3, name: 'Pondicherry', state: 'Tamil Nadu', 
+          reason: '3 hours from Chennai — French Quarter + beach + great cafes.' }
+      ]
+    }
+  }
+
+  if (msg.includes('food') || msg.includes('cuisine') || 
+      msg.includes('eat') || msg.includes('culinary')) {
+    return {
+      text: "For travelers who plan trips around food, these are exceptional:",
+      destinations: [
+        { id: 3, name: 'Pondicherry', state: 'Tamil Nadu', 
+          reason: 'Crepes, seafood curry, Tamil-French fusion — genuinely unique food culture.' },
+        { id: 'chettinad', name: 'Chettinad', state: 'Tamil Nadu', 
+          reason: 'Home of one of India\'s most complex cuisines — a food pilgrimage.' },
+        { id: 4, name: 'Mysuru', state: 'Karnataka', 
+          reason: 'Mysuru pak, bisi bele bath, filter coffee — underrated food city.' }
+      ]
+    }
+  }
+
+  // Default fallback for unrecognized intent
+  return {
+    text: "Let me search for options that better match what you're describing. Here are refined suggestions:",
+    destinations: [
+      { id: 1, name: 'Coorg', state: 'Karnataka', 
+        reason: 'Still a strong match for your original preference — quiet, green, accessible.' },
+      { id: 3, name: 'Pondicherry', state: 'Tamil Nadu', 
+        reason: 'A different vibe — coastal calm with cultural depth.' },
+      { id: 4, name: 'Mysuru', state: 'Karnataka', 
+        reason: 'Heritage and comfort — very easy trip to plan and execute.' }
+    ]
+  }
+}
+
+RESPONSE RENDERING:
+When the AI responds, render the message text as a ChatBubble first,
+then below it render destination suggestion chips in this format:
+
+Each suggestion chip (full-width card, not a small pill):
+- White background, border-radius 10px, 
+  border 1px solid #E5E7EB, padding 12px
+- Left: colored circle with first letter of destination (24px, 
+  background #D6F0EF, color #0D7377, font-weight 700)
+- Center: destination name (15px bold #1A1A1A) + 
+  state (12px gray) on second line +
+  reason text (13px italic #666666 on third line)
+- Right: chevron right icon (#0D7377)
+- Tap: navigate to /destination/:id if id is a number,
+  or show toast "Full destination data coming soon" if id is a string
+
+CHAT INPUT IMPROVEMENT:
+After the user sends a message and before the AI responds,
+show a "thinking" state:
+- 3 animated dots (each 6px circle, #0D7377)
+- Dots animate: scale 0.6 → 1.2 → 0.6, duration 600ms, 
+  stagger 200ms between dots, infinite loop
+- Show for 1500ms then replace with actual response
+
+Also add these context-aware suggestion chips that update 
+based on conversation:
+After first AI response: show chips "Try Kerala" · "Show beaches" · "Under ₹20K"
+After second response: show chips "More options" · "Change dates" · "Start over"
