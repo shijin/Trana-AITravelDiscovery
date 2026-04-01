@@ -25,11 +25,15 @@ export default function QuizScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setQuizAnswers } = useApp();
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
-  const screenWidth = Dimensions.get("window").width;
-  const multiItemWidth = Math.floor((screenWidth - 48 - 12) / 2);
+  const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+  const headerHeight = topPad + 56;
+  const coloredHeight = Math.max(160, Math.round(screenHeight * 0.45) - headerHeight);
   const trackWidth = screenWidth - 40;
+  const multiItemWidth = Math.floor((screenWidth - 48 - 12) / 2);
 
   const [step, setStep] = useState(0);
   const [displayStep, setDisplayStep] = useState(0);
@@ -38,6 +42,7 @@ export default function QuizScreen() {
   const progressAnim = useRef(new Animated.Value(1 / TOTAL)).current;
   const transOpacity = useRef(new Animated.Value(1)).current;
   const transSlide = useRef(new Animated.Value(0)).current;
+  const topSlideAnim = useRef(new Animated.Value(0)).current;
 
   const question = quizQuestions[displayStep];
   const isLast = displayStep === TOTAL - 1;
@@ -52,36 +57,50 @@ export default function QuizScreen() {
   });
 
   const animateToStep = useCallback(
-    (newStep: number) => {
+    (newStep: number, direction: "forward" | "back" = "forward") => {
+      const exitX = direction === "forward" ? -screenWidth : screenWidth;
+      const enterX = direction === "forward" ? screenWidth : -screenWidth;
+
       Animated.parallel([
+        Animated.timing(topSlideAnim, {
+          toValue: exitX,
+          duration: 250,
+          useNativeDriver: true,
+        }),
         Animated.timing(transOpacity, {
           toValue: 0,
           duration: 150,
           useNativeDriver: true,
         }),
         Animated.timing(transSlide, {
-          toValue: -10,
+          toValue: direction === "forward" ? -8 : 8,
           duration: 150,
           useNativeDriver: true,
         }),
       ]).start(() => {
         setDisplayStep(newStep);
-        transSlide.setValue(15);
+        topSlideAnim.setValue(enterX);
+        transSlide.setValue(direction === "forward" ? 12 : -12);
         Animated.parallel([
+          Animated.timing(topSlideAnim, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }),
           Animated.timing(transOpacity, {
             toValue: 1,
-            duration: 250,
+            duration: 200,
             useNativeDriver: true,
           }),
           Animated.timing(transSlide, {
             toValue: 0,
-            duration: 250,
+            duration: 200,
             useNativeDriver: true,
           }),
         ]).start();
       });
     },
-    [transOpacity, transSlide]
+    [topSlideAnim, transOpacity, transSlide, screenWidth]
   );
 
   const animateProgress = useCallback(
@@ -124,7 +143,7 @@ export default function QuizScreen() {
     const nextStep = step + 1;
     setStep(nextStep);
     animateProgress(nextStep);
-    animateToStep(nextStep);
+    animateToStep(nextStep, "forward");
   };
 
   const handleBack = () => {
@@ -135,13 +154,11 @@ export default function QuizScreen() {
     const prevStep = step - 1;
     setStep(prevStep);
     animateProgress(prevStep);
-    animateToStep(prevStep);
+    animateToStep(prevStep, "back");
   };
 
   const progressGlow = Platform.select({
-    web: {
-      boxShadow: "0 0 8px rgba(13, 115, 119, 0.4)",
-    } as any,
+    web: { boxShadow: "0 0 8px rgba(13, 115, 119, 0.4)" } as any,
     default: {
       shadowColor: "#0D7377",
       shadowOffset: { width: 0, height: 0 },
@@ -153,14 +170,14 @@ export default function QuizScreen() {
 
   return (
     <View style={styles.container}>
-      <QuizBackground questionIndex={displayStep} />
-
+      {/* White header strip: back, step count, skip, progress bar */}
       <View
         style={[
           styles.header,
           {
-            paddingTop: topPad + 12,
-            backgroundColor: "rgba(255,255,255,0.9)",
+            paddingTop: topPad + 8,
+            height: headerHeight,
+            backgroundColor: "#fff",
             borderBottomColor: colors.border,
           },
         ]}
@@ -197,16 +214,27 @@ export default function QuizScreen() {
         </View>
       </View>
 
-      <Animated.ScrollView
+      {/* Bold colored top section — slides horizontally on question change */}
+      <Animated.View
+        style={[
+          styles.coloredSection,
+          {
+            height: coloredHeight,
+            transform: [{ translateX: topSlideAnim }],
+          },
+        ]}
+      >
+        <QuizBackground questionIndex={displayStep} />
+      </Animated.View>
+
+      {/* White scrollable content area */}
+      <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: bottomPad + 100 },
         ]}
         showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        scrollEnabled
-        scrollToOverflowEnabled={false}
       >
         <Animated.View
           style={{
@@ -214,7 +242,7 @@ export default function QuizScreen() {
             transform: [{ translateY: transSlide }],
           }}
         >
-          <Text style={[styles.question, { color: colors.primary }]}>
+          <Text style={[styles.question, { color: "#1A1A1A" }]}>
             {question.question}
           </Text>
           <Text style={[styles.questionSub, { color: colors.mutedForeground }]}>
@@ -254,14 +282,15 @@ export default function QuizScreen() {
             </View>
           )}
         </Animated.View>
-      </Animated.ScrollView>
+      </ScrollView>
 
+      {/* Footer */}
       <View
         style={[
           styles.footer,
           {
             paddingBottom: bottomPad + 16,
-            backgroundColor: "rgba(255,255,255,0.95)",
+            backgroundColor: "#fff",
             borderTopColor: colors.border,
           },
         ]}
@@ -290,13 +319,14 @@ export default function QuizScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#fff",
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    gap: 12,
+    justifyContent: "flex-end",
+    gap: 10,
   },
   headerRow: {
     flexDirection: "row",
@@ -320,22 +350,28 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
+  coloredSection: {
+    width: "100%",
+    overflow: "hidden",
+  },
   scroll: {
     flex: 1,
+    backgroundColor: "#fff",
   },
   content: {
     padding: 20,
-    paddingTop: 32,
+    paddingTop: 24,
     gap: 8,
   },
   question: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
-    lineHeight: 32,
+    lineHeight: 30,
   },
   questionSub: {
     fontSize: 14,
-    marginBottom: 24,
+    marginBottom: 20,
+    lineHeight: 20,
   },
   optionsList: {
     gap: 10,

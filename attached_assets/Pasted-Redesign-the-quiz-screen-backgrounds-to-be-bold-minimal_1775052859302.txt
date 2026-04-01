@@ -1,0 +1,63 @@
+Redesign the quiz screen backgrounds to be bold, 
+minimalistic, and visually distinct per question.
+
+Remove the current blob/gradient approach entirely.
+
+Replace with this design system for quiz backgrounds:
+
+Each question gets a TWO-TONE split background:
+- Top 45% of screen: solid bold color (the "mood color")
+- Bottom 55%: white
+- The question text and header sit over the white area
+- A single large abstract shape sits in the top colored area
+
+QUESTION COLOR MAP:
+
+Q1 (Mood): Top color #1A3C5E (deep navy)
+  Shape: Large white circle, 220px diameter, 
+  opacity 0.12, centered in top area
+
+Q2 (Companion): Top color #0D7377 (teal)
+  Shape: Large white rounded square, 180px, 
+  rotated 15 degrees, opacity 0.15, right-aligned in top area
+
+Q3 (Duration): Top color #C9962B (gold/amber)
+  Shape: Two overlapping white circles, 
+  140px and 100px, opacity 0.15
+
+Q4 (Budget): Top color #2D6A4F (forest green)
+  Shape: Large white diamond shape (square rotated 45deg),
+  150px, opacity 0.12, left-aligned
+
+Q5 (Interests): Top color #7F35B2 (rich purple)
+  Shape: Three small white circles in a triangle formation,
+  60px each, opacity 0.18
+
+Q6 (Activity): Top color #D85A30 (warm coral/orange)
+  Shape: Large white arc (semicircle outline only, 
+  stroke 3px, no fill), 200px diameter, opacity 0.2
+
+Q7 (City): Top color #185FA5 (medium blue)
+  Shape: Grid of 9 small white dots (3x3), 
+  6px each, 24px gap, opacity 0.25, top-right area
+
+IMPLEMENTATION:
+- The top colored section contains: 
+  the large decorative shape (positioned absolutely)
+  AND the question emoji or icon (48px, white, centered, 
+  positioned in lower portion of colored area)
+  
+- The split happens at exactly 45vh from top
+
+- The progress bar and back/skip header sit ABOVE the 
+  colored section (white background strip, height 56px)
+
+- Question text (bold, 22px, #1A1A1A) sits 24px below 
+  the color boundary on the white section
+
+- The transition between questions: the top color section 
+  slides out left and new color slides in from right (250ms)
+  while the white content section fades (150ms)
+
+Make the colors feel BOLD and CONFIDENT — not pastel or faded.
+The colored top section should feel like a magazine cover.
