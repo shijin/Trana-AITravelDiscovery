@@ -1,0 +1,244 @@
+Apply the following UI polish changes across the entire app.
+Do NOT change any functionality, routing, data, or screen layouts.
+Only change visual presentation and animation behavior.
+
+═══════════════════════════════════════
+1. REDUCE ILLUSTRATION SIZE TO 30%
+═══════════════════════════════════════
+
+In the LandmarkIllustration component, reduce all SVG 
+illustrations to 30% of their current size.
+
+Current: width="280" height="140"
+New: width="84" height="42" (30% of 280x140)
+
+Update the container positioning:
+- position: absolute
+- bottom: 16px
+- right: 16px (anchor to bottom-right corner, not centered)
+- opacity: 0.18
+- pointer-events: none
+
+This creates a subtle watermark feel in the corner rather 
+than a dominant visual element.
+
+Also reduce the question emoji/icon in the colored section:
+- Current size: whatever is rendering (appears ~48-64px)
+- New size: 28px
+- Position: center of the colored section vertically and 
+  horizontally
+- opacity: 0.9
+
+═══════════════════════════════════════
+2. SMOOTH SCREEN TRANSITIONS
+═══════════════════════════════════════
+
+Add a global page transition wrapper. Create a component 
+called PageTransition that wraps every screen's root element.
+
+Implementation:
+
+Create src/components/PageTransition.jsx:
+
+import { useEffect, useState } from 'react'
+
+export default function PageTransition({ children }) {
+  const [visible, setVisible] = useState(false)
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 20)
+    return () => clearTimeout(timer)
+  }, [])
+  
+  return (
+    <div
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0px)' : 'translateY(12px)',
+        transition: 'opacity 280ms ease-out, transform 280ms ease-out',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+Wrap EVERY screen's return statement root div with 
+<PageTransition>. This means every route change produces 
+a smooth fade-up entrance.
+
+For the QUIZ screen specifically, add a question-level 
+transition between questions (not just page-level):
+
+When the user taps Continue and moves to the next question,
+animate the outgoing question:
+- opacity: 1 → 0, translateX: 0 → -20px, duration: 180ms
+
+Then animate the incoming question:
+- Start: opacity: 0, translateX: 20px
+- End: opacity: 1, translateX: 0
+- Duration: 240ms, ease-out
+- Delay: 180ms (starts after outgoing finishes)
+
+Implement using a questionKey state that changes on each 
+question advance. Use this as the key prop on the 
+question content div to trigger remount animation.
+
+For the COLORED BACKGROUND section of quiz questions,
+animate the background color change separately:
+transition: background-color 350ms ease-in-out
+
+This means as questions change, the top section smoothly 
+transitions between its bold colors rather than cutting.
+
+═══════════════════════════════════════
+3. BUTTON PRESS ANIMATIONS
+═══════════════════════════════════════
+
+Apply to ALL buttons across the app — PrimaryButton, 
+SecondaryButton, QuizOptionButton, and any touchable element.
+
+Add these CSS properties to every button:
+
+transition: transform 150ms ease, 
+            box-shadow 150ms ease, 
+            background-color 200ms ease,
+            border-color 200ms ease;
+
+cursor: pointer;
+user-select: none;
+-webkit-tap-highlight-color: transparent;
+
+On :active state (tap/press):
+transform: scale(0.96);
+
+On :hover state (desktop):
+transform: translateY(-1px);
+box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+
+For PrimaryButton specifically on :active:
+transform: scale(0.96);
+box-shadow: none;
+background-color: darken by 8% (#0D2D47 if current is #1A3C5E)
+
+For QuizOptionButton on SELECT (selected state):
+Add a small checkmark that scales in:
+The checkmark circle (top-right corner of option) should:
+- Start: scale(0) opacity(0)
+- End: scale(1) opacity(1)
+- Duration: 200ms, cubic-bezier(0.34, 1.56, 0.64, 1) 
+  (spring-like overshoot)
+
+For the Save/Bookmark button on destination cards:
+On tap:
+1. Scale: 1 → 1.35 → 1 (keyframe, 300ms total)
+2. Color transition: gray → gold (#C9962B), 200ms
+3. Add a tiny burst effect — 4 small dots radiating 
+   outward from center, opacity 1→0, scale 0→1.5, 250ms
+   Implement as absolutely positioned dots with 
+   CSS keyframe animation triggered on save state change
+
+═══════════════════════════════════════
+4. CARD ENTRANCE ANIMATIONS — RECOMMENDATIONS
+═══════════════════════════════════════
+
+On the Recommendations screen, when destination cards load,
+animate each card entering with a staggered sequence.
+
+Implementation:
+
+Each DestinationCard receives an index prop (0, 1, 2, 3, 4).
+
+Apply these inline styles based on index:
+
+style={{
+  opacity: isVisible ? 1 : 0,
+  transform: isVisible ? 'translateY(0px)' : 'translateY(28px)',
+  transition: `opacity 380ms ease-out ${index * 110}ms, 
+               transform 380ms ease-out ${index * 110}ms`,
+}}
+
+Use an IntersectionObserver to trigger isVisible when the 
+card enters the viewport. This means:
+- Cards 1 and 2 animate in immediately on page load
+- Cards 3, 4, 5 animate in as the user scrolls down to them
+
+The stagger creates a cascading waterfall effect:
+Card 1: starts at 0ms
+Card 2: starts at 110ms
+Card 3: starts at 220ms
+Card 4: starts at 330ms
+Card 5: starts at 440ms
+
+Also animate the AI reasoning card at the top:
+- Fade in first, before any destination cards
+- opacity: 0 → 1, translateY: -8px → 0
+- Duration: 300ms, no delay
+
+═══════════════════════════════════════
+5. BOTTOM NAV ACTIVE TAB ANIMATION
+═══════════════════════════════════════
+
+Redesign the bottom nav tab active state with a smooth 
+indicator animation.
+
+Current: just color change on active tab
+New: floating pill indicator that slides between tabs
+
+Implementation:
+
+Add a sliding background pill behind the active tab icon:
+
+The pill:
+- height: 32px, width: 48px, border-radius: 16px
+- background: #D6F0EF (light teal)
+- position: absolute, behind the icon+label
+- Transitions smoothly between tab positions using:
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1)
+  transform: translateX() based on active tab index
+
+Tab positions (for 4 tabs in 375px width):
+Tab 0 (Home): translateX(0px)
+Tab 1 (Discover): translateX(94px)  
+Tab 2 (Wishlist): translateX(188px)
+Tab 3 (Profile): translateX(282px)
+
+Active icon: scale up slightly (1.1×) + color #0D7377
+  transition: transform 200ms ease, color 200ms ease
+
+Inactive icon: scale(1) + color #9CA3AF
+  transition: transform 200ms ease, color 200ms ease
+
+Active label: opacity 1, font-weight 600, color #0D7377
+  transition: opacity 200ms ease
+
+Inactive label: opacity 0.6, font-weight 400
+  
+When switching tabs:
+The pill glides horizontally to the new position — 
+never jumps. This is the same pattern used by 
+Zomato and Swiggy's bottom navigation.
+
+═══════════════════════════════════════
+IMPORTANT CONSTRAINTS
+═══════════════════════════════════════
+
+1. Do NOT use any external animation libraries 
+   (no Framer Motion, no GSAP, no react-spring).
+   Pure CSS transitions and React state only.
+   This keeps the bundle size small.
+
+2. All animations must respect 
+   prefers-reduced-motion media query:
+   @media (prefers-reduced-motion: reduce) {
+     * { transition-duration: 0.01ms !important; }
+   }
+
+3. Do not change any colors, typography, or spacing.
+   Only add transition and animation properties.
+
+4. Do not break any existing navigation or functionality.
+   Test that all routes still work after applying animations.
+
+5. The total animation overhead should not slow the app.
+   If any animation causes jank, reduce duration by 50%.

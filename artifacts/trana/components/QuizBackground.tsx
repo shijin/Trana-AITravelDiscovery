@@ -24,9 +24,13 @@ const THEMES: Theme[] = [
   { color: "#185FA5", icon: "map-pin" },
 ];
 
+// SVG dims: viewBox stays 280×140, render at 30% → 84×42
+const SVG_W = 84;
+const SVG_H = 42;
+
 function TajMahal() {
   return (
-    <Svg viewBox="0 0 280 140" width={280} height={140}>
+    <Svg viewBox="0 0 280 140" width={SVG_W} height={SVG_H}>
       <Ellipse cx="140" cy="90" rx="40" ry="50" fill="white" />
       <Rect x="137" y="40" width="6" height="20" fill="white" />
       <Rect x="120" y="90" width="40" height="50" fill="white" />
@@ -44,7 +48,7 @@ function TajMahal() {
 
 function HawaMahal() {
   return (
-    <Svg viewBox="0 0 280 140" width={280} height={140}>
+    <Svg viewBox="0 0 280 140" width={SVG_W} height={SVG_H}>
       <Rect x="40" y="100" width="200" height="40" fill="white" />
       <Rect x="50" y="70" width="25" height="35" fill="white" />
       <Ellipse cx="62" cy="70" rx="12" ry="8" fill="white" />
@@ -79,7 +83,7 @@ function HawaMahal() {
 
 function IndiaGate() {
   return (
-    <Svg viewBox="0 0 280 140" width={280} height={140}>
+    <Svg viewBox="0 0 280 140" width={SVG_W} height={SVG_H}>
       <Rect x="90" y="40" width="30" height="100" fill="white" />
       <Rect x="160" y="40" width="30" height="100" fill="white" />
       <Rect x="80" y="20" width="120" height="25" fill="white" />
@@ -92,7 +96,7 @@ function IndiaGate() {
 
 function KeralaHouseboat() {
   return (
-    <Svg viewBox="0 0 280 140" width={280} height={140}>
+    <Svg viewBox="0 0 280 140" width={SVG_W} height={SVG_H}>
       <Rect x="0" y="110" width="280" height="30" fill="white" opacity={0.4} />
       <Path d="M40 110 L60 95 L220 95 L240 110 Z" fill="white" />
       <Rect x="70" y="70" width="140" height="26" rx="4" fill="white" />
@@ -109,7 +113,7 @@ function KeralaHouseboat() {
 
 function HampiTemple() {
   return (
-    <Svg viewBox="0 0 280 140" width={280} height={140}>
+    <Svg viewBox="0 0 280 140" width={SVG_W} height={SVG_H}>
       <Rect x="110" y="30" width="60" height="110" fill="white" />
       <Path d="M105 30 L140 8 L175 30 Z" fill="white" />
       <Rect x="108" y="55" width="64" height="6" fill="white" opacity={0.5} />
@@ -128,16 +132,13 @@ function HampiTemple() {
 
 function HimalayanTrek() {
   return (
-    <Svg viewBox="0 0 280 140" width={280} height={140}>
+    <Svg viewBox="0 0 280 140" width={SVG_W} height={SVG_H}>
       <Path d="M0 140 L60 40 L120 100 L180 20 L240 80 L280 50 L280 140 Z" fill="white" />
       <Path d="M150 40 L180 20 L210 40 Z" fill="white" opacity={0.6} />
       <Path d="M30 70 L60 40 L90 70 Z" fill="white" opacity={0.5} />
       <Circle cx="140" cy="85" r="8" fill="white" opacity={0.9} />
       <Rect x="137" y="93" width="6" height="20" fill="white" opacity={0.9} />
-      <Line
-        x1="150" y1="95" x2="160" y2="118"
-        stroke="white" strokeWidth="2" opacity={0.9}
-      />
+      <Line x1="150" y1="95" x2="160" y2="118" stroke="white" strokeWidth="2" opacity={0.9} />
       <Path
         d="M80 140 Q110 120 140 113 Q170 106 200 95"
         fill="none" stroke="white" strokeWidth="2"
@@ -149,7 +150,7 @@ function HimalayanTrek() {
 
 function MumbaiSkyline() {
   return (
-    <Svg viewBox="0 0 280 140" width={280} height={140}>
+    <Svg viewBox="0 0 280 140" width={SVG_W} height={SVG_H}>
       <Rect x="60" y="50" width="10" height="85" fill="white" />
       <Rect x="210" y="50" width="10" height="85" fill="white" />
       <Line x1="65" y1="50" x2="30" y2="120" stroke="white" strokeWidth="1.5" />
@@ -188,7 +189,7 @@ function LandmarkIllustration({ questionIndex }: LandmarkProps) {
   const idx = Math.min(questionIndex, LANDMARKS.length - 1);
   const Landmark = LANDMARKS[idx];
   return (
-    <View style={[styles.landmarkContainer, { pointerEvents: "none" }]}>
+    <View style={styles.landmarkContainer}>
       <Landmark />
     </View>
   );
@@ -204,14 +205,13 @@ export default function QuizBackground({ questionIndex }: Props) {
 
   return (
     <View
-      style={[StyleSheet.absoluteFill, { backgroundColor: theme.color }]}
-      pointerEvents="none"
+      style={[StyleSheet.absoluteFill, { backgroundColor: theme.color, pointerEvents: "none" } as any]}
     >
       <LandmarkIllustration questionIndex={idx} />
       <View style={styles.iconContainer}>
         <Feather
           name={theme.icon as any}
-          size={32}
+          size={28}
           color="rgba(255,255,255,0.88)"
         />
       </View>
@@ -222,11 +222,10 @@ export default function QuizBackground({ questionIndex }: Props) {
 const styles = StyleSheet.create({
   landmarkContainer: {
     position: "absolute",
-    bottom: 0,
-    left: "50%" as any,
-    transform: [{ translateX: -140 }],
+    bottom: 16,
+    right: 16,
     opacity: 0.18,
-    width: 280,
+    pointerEvents: "none" as any,
   },
   iconContainer: {
     position: "absolute",

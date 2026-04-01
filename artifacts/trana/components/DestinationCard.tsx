@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  Animated,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -9,6 +10,13 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useColors } from "@/hooks/useColors";
 import { Destination } from "@/data/mockData";
+
+const BURST_DIRS = [
+  { x: -14, y: -14 },
+  { x: 14, y: -14 },
+  { x: -14, y: 14 },
+  { x: 14, y: 14 },
+];
 
 interface Props {
   destination: Destination;
@@ -26,6 +34,69 @@ export default function DestinationCard({
   compact = false,
 }: Props) {
   const colors = useColors();
+
+  const saveScale = useRef(new Animated.Value(1)).current;
+  const prevSavedRef = useRef(saved);
+
+  const burstAnims = useRef(
+    BURST_DIRS.map(() => ({
+      tx: new Animated.Value(0),
+      ty: new Animated.Value(0),
+      op: new Animated.Value(0),
+    }))
+  ).current;
+
+  useEffect(() => {
+    if (saved === prevSavedRef.current) return;
+    prevSavedRef.current = saved;
+
+    if (saved) {
+      // Bounce: grow then spring back
+      Animated.sequence([
+        Animated.timing(saveScale, {
+          toValue: 1.35,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.spring(saveScale, {
+          toValue: 1,
+          friction: 3,
+          tension: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Burst dots
+      burstAnims.forEach((b, i) => {
+        b.tx.setValue(0);
+        b.ty.setValue(0);
+        b.op.setValue(1);
+        Animated.parallel([
+          Animated.timing(b.tx, {
+            toValue: BURST_DIRS[i].x,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(b.ty, {
+            toValue: BURST_DIRS[i].y,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(b.op, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    } else {
+      Animated.timing(saveScale, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [saved]);
 
   return (
     <TouchableOpacity
@@ -45,12 +116,34 @@ export default function DestinationCard({
           style={styles.saveBtn}
           hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
         >
-          <Feather
-            name="bookmark"
-            size={20}
-            color={saved ? colors.gold : "rgba(255,255,255,0.9)"}
-          />
+          <Animated.View style={{ transform: [{ scale: saveScale }] }}>
+            <Feather
+              name="bookmark"
+              size={20}
+              color={saved ? colors.gold : "rgba(255,255,255,0.9)"}
+            />
+          </Animated.View>
+
+          {/* Burst dots radiating outward on save */}
+          {burstAnims.map((b, i) => (
+            <Animated.View
+              key={i}
+              style={{
+                position: "absolute",
+                width: 5,
+                height: 5,
+                borderRadius: 2.5,
+                backgroundColor: colors.gold,
+                top: 7.5,
+                left: 7.5,
+                transform: [{ translateX: b.tx }, { translateY: b.ty }],
+                opacity: b.op,
+                pointerEvents: "none" as any,
+              }}
+            />
+          ))}
         </TouchableOpacity>
+
         <View style={styles.heroBadges}>
           <Text style={styles.heroName}>{destination.name}</Text>
           <View style={styles.statePill}>

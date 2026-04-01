@@ -34,6 +34,9 @@ export default function QuizOption({
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const mountSlide = useRef(new Animated.Value(20)).current;
+  // Check indicator scale — spring-in when selected, fade out when not
+  const checkScale = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  const prevSelectedRef = useRef(selected);
 
   useEffect(() => {
     const delay = index * 80;
@@ -52,6 +55,27 @@ export default function QuizOption({
       }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    if (selected === prevSelectedRef.current) return;
+    prevSelectedRef.current = selected;
+
+    if (selected) {
+      checkScale.setValue(0);
+      Animated.spring(checkScale, {
+        toValue: 1,
+        tension: 280,
+        friction: 10,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(checkScale, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [selected]);
 
   const handlePress = () => {
     Animated.sequence([
@@ -97,13 +121,19 @@ export default function QuizOption({
             },
           ]}
         >
-          {selected && (
-            <View
-              style={[styles.checkBadge, { backgroundColor: colors.tealDark }]}
-            >
-              <Feather name="check" size={8} color="#fff" />
-            </View>
-          )}
+          {/* Spring-in check badge — always rendered, scale 0→1 */}
+          <Animated.View
+            style={[
+              styles.checkBadge,
+              {
+                backgroundColor: colors.tealDark,
+                transform: [{ scale: checkScale }],
+              },
+            ]}
+          >
+            <Feather name="check" size={8} color="#fff" />
+          </Animated.View>
+
           <Feather
             name={icon as any}
             size={28}
@@ -149,9 +179,10 @@ export default function QuizOption({
         >
           {label}
         </Text>
-        {selected && (
+        {/* Spring-in check icon for regular options */}
+        <Animated.View style={{ transform: [{ scale: checkScale }] }}>
           <Feather name="check-circle" size={20} color={colors.tealDark} />
-        )}
+        </Animated.View>
       </TouchableOpacity>
     </Animated.View>
   );
