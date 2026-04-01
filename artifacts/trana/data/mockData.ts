@@ -40,7 +40,18 @@ export interface QuizQuestion {
   multiSelect?: boolean;
 }
 
+export interface QuizAnswers {
+  mood?: string;
+  companion?: string;
+  budget?: string;
+  activity?: string;
+  interests?: string[];
+  city?: string;
+  duration?: string;
+}
+
 export const destinations: Destination[] = [
+  // ── Original 5 ──────────────────────────────────────────────────────────────
   {
     id: 1,
     name: "Coorg",
@@ -58,22 +69,8 @@ export const destinations: Destination[] = [
     companionTypes: ["solo", "couple"],
     foodHighlights: ["Pandi curry", "Akki roti", "Filter coffee"],
     videos: [
-      {
-        id: 1,
-        title: "Coorg in 3 days — solo travel guide",
-        creator: "Nomadic Nisha",
-        views: "284K",
-        companionType: "solo",
-        thumbnail: "coorg1",
-      },
-      {
-        id: 2,
-        title: "Coorg couple trip — hidden spots",
-        creator: "Travel with Riya & Raj",
-        views: "156K",
-        companionType: "couple",
-        thumbnail: "coorg2",
-      },
+      { id: 1, title: "Coorg in 3 days — solo travel guide", creator: "Nomadic Nisha", views: "284K", companionType: "solo", thumbnail: "coorg1" },
+      { id: 2, title: "Coorg couple trip — hidden spots", creator: "Travel with Riya & Raj", views: "156K", companionType: "couple", thumbnail: "coorg2" },
     ],
   },
   {
@@ -93,22 +90,8 @@ export const destinations: Destination[] = [
     companionTypes: ["couple", "solo"],
     foodHighlights: ["Millet dosa", "Banana lassi", "Local thali"],
     videos: [
-      {
-        id: 3,
-        title: "Hampi couple travel — everything you need",
-        creator: "Wandering Together",
-        views: "312K",
-        companionType: "couple",
-        thumbnail: "hampi1",
-      },
-      {
-        id: 4,
-        title: "Hampi solo — 2 day itinerary",
-        creator: "Solo Miles India",
-        views: "198K",
-        companionType: "solo",
-        thumbnail: "hampi2",
-      },
+      { id: 3, title: "Hampi couple travel — everything you need", creator: "Wandering Together", views: "312K", companionType: "couple", thumbnail: "hampi1" },
+      { id: 4, title: "Hampi solo — 2 day itinerary", creator: "Solo Miles India", views: "198K", companionType: "solo", thumbnail: "hampi2" },
     ],
   },
   {
@@ -128,14 +111,7 @@ export const destinations: Destination[] = [
     companionTypes: ["couple", "solo", "senior"],
     foodHighlights: ["Crepes", "Seafood curry", "Banana blossom salad"],
     videos: [
-      {
-        id: 5,
-        title: "Pondy couple guide — best of White Town",
-        creator: "Travel with Meera",
-        views: "445K",
-        companionType: "couple",
-        thumbnail: "pondy1",
-      },
+      { id: 5, title: "Pondy couple guide — best of White Town", creator: "Travel with Meera", views: "445K", companionType: "couple", thumbnail: "pondy1" },
     ],
   },
   {
@@ -156,14 +132,7 @@ export const destinations: Destination[] = [
     companionTypes: ["senior", "family", "couple"],
     foodHighlights: ["Mysuru pak", "Bisi bele bath", "Set dosa"],
     videos: [
-      {
-        id: 6,
-        title: "Mysuru — the perfect senior-friendly trip",
-        creator: "Family Travels India",
-        views: "167K",
-        companionType: "senior",
-        thumbnail: "mysuru1",
-      },
+      { id: 6, title: "Mysuru — the perfect senior-friendly trip", creator: "Family Travels India", views: "167K", companionType: "senior", thumbnail: "mysuru1" },
     ],
   },
   {
@@ -183,17 +152,355 @@ export const destinations: Destination[] = [
     companionTypes: ["solo", "couple"],
     foodHighlights: ["Jadoh", "Dohneiiong", "Tungrymbai"],
     videos: [
-      {
-        id: 7,
-        title: "Meghalaya — 5 days in the clouds",
-        creator: "Northeast Explorer",
-        views: "521K",
-        companionType: "solo",
-        thumbnail: "meg1",
-      },
+      { id: 7, title: "Meghalaya — 5 days in the clouds", creator: "Northeast Explorer", views: "521K", companionType: "solo", thumbnail: "meg1" },
+    ],
+  },
+
+  // ── 15 New destinations ─────────────────────────────────────────────────────
+  {
+    id: 6,
+    name: "Munnar",
+    state: "Kerala",
+    region: "Western Ghats",
+    heroGradient: ["#15803d", "#10b981"],
+    tags: ["Tea Estates", "Nature", "Cool Climate"],
+    rationale:
+      "High-altitude tea country with misty mornings and genuine quiet. One of the few places in India that truly feels removed from everything.",
+    budgetBreakdown: { transport: 4000, stay: 10000, food: 3000 },
+    totalBudget: 17000,
+    bestMonths: ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["couple", "solo", "senior"],
+    foodHighlights: ["Puttu and kadala curry", "Kerala banana chips", "Filter coffee"],
+    videos: [
+      { id: 8, title: "Munnar in 3 days — complete guide", creator: "Kerala Wanderer", views: "389K", companionType: "couple", thumbnail: "from-green-800 to-green-600" },
+    ],
+  },
+  {
+    id: 7,
+    name: "Alleppey",
+    state: "Kerala",
+    region: "Backwaters",
+    heroGradient: ["#0e7490", "#14b8a6"],
+    tags: ["Backwaters", "Houseboat", "Serene"],
+    rationale:
+      "The houseboat experience on Vembanad Lake is one of the most uniquely Indian travel experiences that exists. Calm, slow, and completely unlike anything else.",
+    budgetBreakdown: { transport: 3500, stay: 12000, food: 3500 },
+    totalBudget: 19000,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["couple", "senior", "family"],
+    foodHighlights: ["Karimeen pollichathu", "Appam and stew", "Prawn moilee"],
+    videos: [
+      { id: 9, title: "Alleppey houseboat experience", creator: "Backwater Dreams", views: "612K", companionType: "couple", thumbnail: "from-cyan-800 to-teal-600" },
+    ],
+  },
+  {
+    id: 8,
+    name: "Varkala",
+    state: "Kerala",
+    region: "Thiruvananthapuram Coast",
+    heroGradient: ["#2563eb", "#06b6d4"],
+    tags: ["Beach", "Cliff Views", "Offbeat"],
+    rationale:
+      "A cliff-top beach town that manages to be both dramatic and unhurried. Far less chaotic than Goa with genuinely better seafood.",
+    budgetBreakdown: { transport: 3800, stay: 7000, food: 2500 },
+    totalBudget: 13300,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["solo", "couple"],
+    foodHighlights: ["Fresh grilled seafood", "Kerala fish curry", "Coconut water"],
+    videos: [
+      { id: 10, title: "Varkala — the beach Goa forgot to build", creator: "Coastal India", views: "278K", companionType: "solo", thumbnail: "from-blue-800 to-cyan-600" },
+    ],
+  },
+  {
+    id: 9,
+    name: "Gokarna",
+    state: "Karnataka",
+    region: "North Karnataka Coast",
+    heroGradient: ["#d97706", "#f97316"],
+    tags: ["Beach", "Spiritual", "Offbeat"],
+    rationale:
+      "A temple town that also has some of Karnataka's best beaches. Half pilgrimage, half beach escape — completely its own thing.",
+    budgetBreakdown: { transport: 2800, stay: 5000, food: 2000 },
+    totalBudget: 9800,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "moderate",
+    companionTypes: ["solo", "couple", "friends"],
+    foodHighlights: ["Fresh coconut fish curry", "Gokarna thali", "Beach shack seafood"],
+    videos: [
+      { id: 11, title: "Gokarna — the anti-Goa beach trip", creator: "Karnataka Roads", views: "334K", companionType: "solo", thumbnail: "from-amber-800 to-orange-600" },
+    ],
+  },
+  {
+    id: 10,
+    name: "Rishikesh",
+    state: "Uttarakhand",
+    region: "Himalayan Foothills",
+    heroGradient: ["#4f46e5", "#3b82f6"],
+    tags: ["Spiritual", "Adventure", "Yoga"],
+    rationale:
+      "The yoga capital of the world sits where the Ganges emerges from the Himalayas. Spiritual depth, river rafting, and a genuinely international energy.",
+    budgetBreakdown: { transport: 4500, stay: 5000, food: 2000 },
+    totalBudget: 11500,
+    bestMonths: ["Feb", "Mar", "Apr", "Sep", "Oct", "Nov"],
+    currentSeason: "ideal",
+    activityLevel: "moderate",
+    companionTypes: ["solo", "couple", "friends"],
+    foodHighlights: ["Pure veg thali", "Chai at the ghats", "Rhum Doodle cafe"],
+    videos: [
+      { id: 12, title: "Rishikesh — more than just yoga", creator: "North India Diaries", views: "487K", companionType: "solo", thumbnail: "from-indigo-800 to-blue-600" },
+    ],
+  },
+  {
+    id: 11,
+    name: "Varanasi",
+    state: "Uttar Pradesh",
+    region: "Gangetic Plain",
+    heroGradient: ["#ea580c", "#eab308"],
+    tags: ["Spiritual", "Heritage", "Cultural"],
+    rationale:
+      "One of the oldest living cities in the world. The Ganga Aarti at dawn is not a tourist activity — it is something that genuinely moves you regardless of faith.",
+    budgetBreakdown: { transport: 4000, stay: 6000, food: 2500 },
+    totalBudget: 12500,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "moderate",
+    companionTypes: ["solo", "couple", "family", "senior"],
+    foodHighlights: ["Kachori sabzi", "Banarasi paan", "Malaiyo in winter"],
+    videos: [
+      { id: 13, title: "Varanasi — a morning on the ghats", creator: "India Untouched", views: "892K", companionType: "solo", thumbnail: "from-orange-800 to-yellow-600" },
+    ],
+  },
+  {
+    id: 12,
+    name: "Jaipur",
+    state: "Rajasthan",
+    region: "Eastern Rajasthan",
+    heroGradient: ["#db2777", "#f43f5e"],
+    tags: ["Heritage", "Forts", "Royalty"],
+    rationale:
+      "The Pink City delivers on its reputation — Amber Fort alone is worth the trip. Best experienced slowly over 3 days with a good guide.",
+    budgetBreakdown: { transport: 5000, stay: 10000, food: 3000 },
+    totalBudget: 18000,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb"],
+    currentSeason: "ideal",
+    activityLevel: "moderate",
+    companionTypes: ["couple", "family", "solo", "senior"],
+    foodHighlights: ["Dal baati churma", "Laal maas", "Ghevar sweet"],
+    videos: [
+      { id: 14, title: "Jaipur in 3 days — the complete guide", creator: "Rajasthan Diaries", views: "734K", companionType: "couple", thumbnail: "from-pink-800 to-rose-600" },
+    ],
+  },
+  {
+    id: 13,
+    name: "Spiti Valley",
+    state: "Himachal Pradesh",
+    region: "Trans-Himalaya",
+    heroGradient: ["#475569", "#6b7280"],
+    tags: ["High Altitude", "Adventure", "Offbeat"],
+    rationale:
+      "A cold desert at 12,000 feet with ancient monasteries, surreal landscapes, and zero phone signal. For travelers who want to genuinely disappear.",
+    budgetBreakdown: { transport: 9000, stay: 8000, food: 3000 },
+    totalBudget: 20000,
+    bestMonths: ["Jun", "Jul", "Aug", "Sep"],
+    currentSeason: "off-season",
+    activityLevel: "high",
+    companionTypes: ["solo", "friends"],
+    foodHighlights: ["Thukpa noodle soup", "Butter tea", "Tibetan momos"],
+    videos: [
+      { id: 15, title: "Spiti Valley — the road to nowhere", creator: "Mountain Wanderer", views: "1.2M", companionType: "solo", thumbnail: "from-slate-800 to-gray-600" },
+    ],
+  },
+  {
+    id: 14,
+    name: "Andaman Islands",
+    state: "Andaman & Nicobar",
+    region: "Bay of Bengal",
+    heroGradient: ["#0ea5e9", "#60a5fa"],
+    tags: ["Beach", "Snorkeling", "Remote"],
+    rationale:
+      "Arguably the most beautiful beaches in India — Radhanagar is consistently ranked among Asia's best. The water color is unlike anything on the mainland.",
+    budgetBreakdown: { transport: 12000, stay: 14000, food: 5000 },
+    totalBudget: 31000,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"],
+    currentSeason: "ideal",
+    activityLevel: "moderate",
+    companionTypes: ["couple", "solo", "friends"],
+    foodHighlights: ["Fresh lobster", "Coconut prawn curry", "Fish tikka"],
+    videos: [
+      { id: 16, title: "Andaman — India's best kept secret", creator: "Island Hopper India", views: "956K", companionType: "couple", thumbnail: "from-sky-800 to-blue-600" },
+    ],
+  },
+  {
+    id: 15,
+    name: "Pushkar",
+    state: "Rajasthan",
+    region: "Central Rajasthan",
+    heroGradient: ["#ca8a04", "#f59e0b"],
+    tags: ["Spiritual", "Offbeat", "Desert"],
+    rationale:
+      "One of the only Brahma temples in the world sits beside a sacred lake surrounded by 52 bathing ghats. Quirky, spiritual, and surprisingly cosmopolitan.",
+    budgetBreakdown: { transport: 5500, stay: 5000, food: 2000 },
+    totalBudget: 12500,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["solo", "couple", "senior"],
+    foodHighlights: ["Malpua", "Dal baati", "Lassi at Sunset Cafe"],
+    videos: [
+      { id: 17, title: "Pushkar — the town that surprises everyone", creator: "Rajasthan Soul", views: "312K", companionType: "solo", thumbnail: "from-yellow-800 to-amber-600" },
+    ],
+  },
+  {
+    id: 16,
+    name: "Ziro Valley",
+    state: "Arunachal Pradesh",
+    region: "Eastern Himalayas",
+    heroGradient: ["#65a30d", "#22c55e"],
+    tags: ["Offbeat", "Tribal Culture", "Nature"],
+    rationale:
+      "A UNESCO World Heritage tentative site with Apatani tribal culture, pine forests, and rice paddy landscapes. One of Northeast India's best-kept secrets.",
+    budgetBreakdown: { transport: 11000, stay: 6000, food: 2500 },
+    totalBudget: 19500,
+    bestMonths: ["Mar", "Apr", "May", "Sep", "Oct", "Nov"],
+    currentSeason: "ideal",
+    activityLevel: "moderate",
+    companionTypes: ["solo", "couple"],
+    foodHighlights: ["Apong rice beer", "Bamboo shoot pork", "Fish in banana leaf"],
+    videos: [
+      { id: 18, title: "Ziro Valley — India's hidden paradise", creator: "Northeast Expeditions", views: "445K", companionType: "solo", thumbnail: "from-lime-800 to-green-600" },
+    ],
+  },
+  {
+    id: 17,
+    name: "Ooty",
+    state: "Tamil Nadu",
+    region: "Nilgiri Hills",
+    heroGradient: ["#059669", "#14b8a6"],
+    tags: ["Hill Station", "Tea Gardens", "Family"],
+    rationale:
+      "The Nilgiri Mountain Railway is a UNESCO World Heritage experience. Ooty rewards those who go beyond the main town into the tea estate roads.",
+    budgetBreakdown: { transport: 3000, stay: 7000, food: 2500 },
+    totalBudget: 12500,
+    bestMonths: ["Apr", "May", "Jun", "Sep", "Oct", "Nov"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["family", "senior", "couple"],
+    foodHighlights: ["Ooty varkey biscuit", "Fresh Nilgiri tea", "Homemade chocolate"],
+    videos: [
+      { id: 19, title: "Ooty family trip — what to actually do", creator: "South India Travels", views: "521K", companionType: "family", thumbnail: "from-emerald-800 to-teal-600" },
+    ],
+  },
+  {
+    id: 18,
+    name: "Kasol",
+    state: "Himachal Pradesh",
+    region: "Parvati Valley",
+    heroGradient: ["#7c3aed", "#a855f7"],
+    tags: ["Mountains", "Backpacking", "Nature"],
+    rationale:
+      "A tiny village in the Parvati Valley surrounded by pine forests and Himalayan peaks. The starting point for some of India's best high-altitude treks.",
+    budgetBreakdown: { transport: 5000, stay: 4000, food: 2000 },
+    totalBudget: 11000,
+    bestMonths: ["Mar", "Apr", "May", "Jun", "Sep", "Oct"],
+    currentSeason: "ideal",
+    activityLevel: "high",
+    companionTypes: ["solo", "friends"],
+    foodHighlights: ["Israeli food (hummus, falafel)", "Maggi at trail stops", "Himachali trout"],
+    videos: [
+      { id: 20, title: "Kasol — the backpacker's Himalayan base", creator: "Himalayan Trails", views: "678K", companionType: "solo", thumbnail: "from-violet-800 to-purple-600" },
+    ],
+  },
+  {
+    id: 19,
+    name: "Chettinad",
+    state: "Tamil Nadu",
+    region: "Sivaganga District",
+    heroGradient: ["#b91c1c", "#ea580c"],
+    tags: ["Cuisine", "Heritage", "Offbeat"],
+    rationale:
+      "The cuisine capital of Tamil Nadu — Chettinad cooking is one of India's most complex and underrated culinary traditions. The heritage mansions are extraordinary.",
+    budgetBreakdown: { transport: 3500, stay: 6000, food: 2500 },
+    totalBudget: 12000,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["couple", "solo", "senior"],
+    foodHighlights: ["Chettinad chicken curry", "Kavuni arisi sweet", "Kuzhi paniyaram"],
+    videos: [
+      { id: 21, title: "Chettinad — eating through Tamil Nadu's heritage", creator: "Food Roads India", views: "289K", companionType: "couple", thumbnail: "from-red-800 to-orange-600" },
+    ],
+  },
+  {
+    id: 20,
+    name: "Khajuraho",
+    state: "Madhya Pradesh",
+    region: "Bundelkhand",
+    heroGradient: ["#57534e", "#d97706"],
+    tags: ["Heritage", "UNESCO", "Sculpture"],
+    rationale:
+      "The Chandela temple complex is one of India's great architectural achievements — intricate, bold, and unlike anything else in the country.",
+    budgetBreakdown: { transport: 5000, stay: 7000, food: 2500 },
+    totalBudget: 14500,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["couple", "solo", "senior"],
+    foodHighlights: ["Dal bafla", "Bhutte ki kees", "Shikanjvi"],
+    videos: [
+      { id: 22, title: "Khajuraho — understanding the temples", creator: "Heritage India", views: "198K", companionType: "couple", thumbnail: "from-stone-800 to-amber-700" },
     ],
   },
 ];
+
+export function getRecommendations(quizAnswers: QuizAnswers): Destination[] {
+  const budgetMap: Record<string, number> = {
+    "under-15k": 15000,
+    "15-30k": 30000,
+    "30-60k": 60000,
+    "60k+": 999999,
+  };
+  const maxBudget = budgetMap[quizAnswers.budget || ""] || 30000;
+
+  const scored = destinations.map((dest) => {
+    let score = 0;
+
+    if (dest.totalBudget <= maxBudget) score += 30;
+    else if (dest.totalBudget <= maxBudget * 1.2) score += 15;
+
+    if (quizAnswers.companion && dest.companionTypes.includes(quizAnswers.companion)) score += 25;
+
+    if (quizAnswers.activity) {
+      if (dest.activityLevel === quizAnswers.activity) score += 20;
+      else if (quizAnswers.activity === "moderate" && dest.activityLevel === "low") score += 10;
+    }
+
+    if (quizAnswers.interests && quizAnswers.interests.length > 0) {
+      const tagMatch = dest.tags.some((tag) =>
+        quizAnswers.interests!.some(
+          (interest) =>
+            tag.toLowerCase().includes(interest.toLowerCase()) ||
+            interest.toLowerCase().includes(tag.toLowerCase())
+        )
+      );
+      if (tagMatch) score += 25;
+    }
+
+    if (dest.currentSeason === "ideal") score += 10;
+
+    return { ...dest, score };
+  });
+
+  return scored
+    .sort((a, b) => (b as any).score - (a as any).score)
+    .slice(0, 5);
+}
 
 export const quizQuestions: QuizQuestion[] = [
   {
@@ -290,11 +597,7 @@ export const itineraryData = {
       day: 1,
       destination: "Hampi",
       travelTime: "7 hrs by bus from Hyderabad",
-      experiences: [
-        "Virupaksha Temple at sunrise",
-        "Vittala Temple complex",
-        "Hampi Bazaar walk",
-      ],
+      experiences: ["Virupaksha Temple at sunrise", "Vittala Temple complex", "Hampi Bazaar walk"],
       food: "Millet dosa at Mango Tree restaurant",
       stay: "Guesthouse near boulders — approx ₹800/night",
       cost: 2800,
@@ -303,11 +606,7 @@ export const itineraryData = {
       day: 2,
       destination: "Hampi",
       travelTime: "—",
-      experiences: [
-        "Royal Enclosure",
-        "Lotus Mahal",
-        "Sunset at Matanga Hill",
-      ],
+      experiences: ["Royal Enclosure", "Lotus Mahal", "Sunset at Matanga Hill"],
       food: "Banana lassi + local thali",
       stay: "Same guesthouse",
       cost: 1200,
@@ -316,11 +615,7 @@ export const itineraryData = {
       day: 3,
       destination: "Badami",
       travelTime: "2 hrs from Hampi",
-      experiences: [
-        "Badami cave temples",
-        "Agastya Lake",
-        "Bhutanatha temples",
-      ],
+      experiences: ["Badami cave temples", "Agastya Lake", "Bhutanatha temples"],
       food: "Jowar roti at a local dhaba",
       stay: "Budget hotel near caves — approx ₹700/night",
       cost: 1800,
@@ -329,11 +624,7 @@ export const itineraryData = {
       day: 4,
       destination: "Aihole & Pattadakal",
       travelTime: "30 min from Badami",
-      experiences: [
-        "Aihole temple complex — 125 temples",
-        "Pattadakal UNESCO site",
-        "Sunset view from hilltop",
-      ],
+      experiences: ["Aihole temple complex — 125 temples", "Pattadakal UNESCO site", "Sunset view from hilltop"],
       food: "Packed lunch from Badami hotel",
       stay: "Return to Badami",
       cost: 900,

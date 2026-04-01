@@ -12,11 +12,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
-import { destinations } from "@/data/mockData";
+import { getRecommendations } from "@/data/mockData";
 import DestinationCard from "@/components/DestinationCard";
 import { useApp } from "@/context/AppContext";
 
-const ITEM_COUNT = destinations.length + 2;
+const ITEM_COUNT = 7; // 5 recommendations + AI card + refine card
 
 function makeAnimValues(count: number) {
   return Array.from({ length: count }, () => ({
@@ -33,6 +33,8 @@ export default function RecommendationsScreen() {
     useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 + 20 : insets.bottom + 20;
+
+  const recommended = getRecommendations(quizAnswers);
 
   const animValues = useRef(makeAnimValues(ITEM_COUNT)).current;
   const hasAnimated = useRef(false);
@@ -73,13 +75,45 @@ export default function RecommendationsScreen() {
   };
 
   const getCityLabel = (city?: string) => {
-    if (!city) return "Your city";
+    if (!city) return "your city";
     return city.charAt(0).toUpperCase() + city.slice(1);
   };
 
   const getDurationLabel = (duration?: string) => {
     if (!duration) return "Any duration";
     return duration + " days";
+  };
+
+  const getExplanationText = () => {
+    const parts: string[] = [];
+    if (quizAnswers.mood) {
+      parts.push(`your ${quizAnswers.mood} mood`);
+    }
+    if (quizAnswers.companion) {
+      const cm: Record<string, string> = {
+        solo: "solo travel", couple: "couples", family: "family trips",
+        senior: "traveling with seniors", friends: "group travel",
+      };
+      parts.push(cm[quizAnswers.companion] || quizAnswers.companion);
+    }
+    if (quizAnswers.budget) {
+      const bm: Record<string, string> = {
+        "under-15k": "a budget under ₹15K", "15-30k": "a ₹15–30K budget",
+        "30-60k": "a ₹30–60K budget", "60k+": "a premium budget",
+      };
+      parts.push(bm[quizAnswers.budget]);
+    }
+    if (quizAnswers.activity) {
+      parts.push(`${quizAnswers.activity} activity levels`);
+    }
+    if (parts.length === 0) {
+      return `Scored from 20 curated Indian destinations and ranked for ${getCityLabel(quizAnswers.city)}.`;
+    }
+    const joined =
+      parts.length === 1
+        ? parts[0]
+        : parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1];
+    return `Scored from 20 destinations to match ${joined} — all reachable from ${getCityLabel(quizAnswers.city)}.`;
   };
 
   return (
@@ -144,13 +178,11 @@ export default function RecommendationsScreen() {
             </Text>
           </View>
           <Text style={[styles.aiCardText, { color: colors.primary }]}>
-            These destinations match your need for quiet nature, a moderate
-            budget, and low physical activity — all reachable from{" "}
-            {getCityLabel(quizAnswers.city)}.
+            {getExplanationText()}
           </Text>
         </Animated.View>
 
-        {destinations.map((dest, i) => (
+        {recommended.map((dest, i) => (
           <Animated.View key={dest.id} style={animStyle(i + 1)}>
             <DestinationCard
               destination={dest}
@@ -172,7 +204,7 @@ export default function RecommendationsScreen() {
           </Animated.View>
         ))}
 
-        <Animated.View style={animStyle(destinations.length + 1)}>
+        <Animated.View style={animStyle(recommended.length + 1)}>
           <TouchableOpacity
             onPress={() => router.push("/chat")}
             activeOpacity={0.85}
