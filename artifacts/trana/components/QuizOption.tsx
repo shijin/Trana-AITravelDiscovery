@@ -1,10 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import {
+  StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  ViewStyle,
 } from "react-native";
 import { useColors } from "@/hooks/useColors";
 
@@ -14,6 +16,7 @@ interface Props {
   selected: boolean;
   onPress: () => void;
   compact?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export default function QuizOption({
@@ -22,6 +25,7 @@ export default function QuizOption({
   selected,
   onPress,
   compact = false,
+  style,
 }: Props) {
   const colors = useColors();
 
@@ -33,22 +37,34 @@ export default function QuizOption({
         style={[
           styles.compactBtn,
           {
-            borderColor: selected ? colors.tealDark : colors.border,
-            backgroundColor: selected ? colors.tealLight : colors.card,
+            borderColor: selected ? colors.tealDark : "#E5E7EB",
+            borderWidth: selected ? 2 : 1.5,
+            backgroundColor: selected ? colors.tealLight : "#FFFFFF",
           },
+          style,
         ]}
       >
+        {selected && (
+          <View
+            style={[
+              styles.checkBadge,
+              { backgroundColor: colors.tealDark },
+            ]}
+          >
+            <Feather name="check" size={8} color="#fff" />
+          </View>
+        )}
         <Feather
           name={icon as any}
-          size={20}
+          size={28}
           color={selected ? colors.tealDark : colors.mutedForeground}
+          style={styles.compactIcon}
         />
         <Text
           style={[
             styles.compactLabel,
-            { color: selected ? colors.tealDark : colors.foreground },
+            { color: selected ? colors.tealDark : "#1A1A1A" },
           ]}
-          numberOfLines={2}
         >
           {label}
         </Text>
@@ -104,18 +120,32 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   compactBtn: {
-    flex: 1,
+    height: 88,
+    borderRadius: 12,
     alignItems: "center",
-    justifyContent: "center",
-    height: 72,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    gap: 6,
-    padding: 8,
+    justifyContent: "flex-start",
+    paddingTop: 16,
+    paddingHorizontal: 8,
+  },
+  compactIcon: {
+    marginTop: 0,
   },
   compactLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
     textAlign: "center",
+    lineHeight: 17,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  checkBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

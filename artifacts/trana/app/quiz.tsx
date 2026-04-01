@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   Animated,
+  Dimensions,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,8 @@ export default function QuizScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const screenWidth = Dimensions.get("window").width;
+  const multiItemWidth = Math.floor((screenWidth - 48 - 12) / 2);
 
   const question = quizQuestions[step];
   const isLast = step === quizQuestions.length - 1;
@@ -141,6 +144,7 @@ export default function QuizScreen() {
                 }
                 onPress={() => handleSelect(opt.id)}
                 compact
+                style={{ width: multiItemWidth }}
               />
             ))}
           </View>
@@ -245,7 +249,7 @@ const styles = StyleSheet.create({
   multiGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 12,
   },
   footer: {
     padding: 20,

@@ -247,7 +247,7 @@ export const quizQuestions: QuizQuestion[] = [
     subtitle: "Pick everything that feels right.",
     multiSelect: true,
     options: [
-      { id: "nature", label: "Nature & outdoors", icon: "leaf" },
+      { id: "nature", label: "Nature & outdoors", icon: "sun" },
       { id: "food", label: "Food & local culture", icon: "coffee" },
       { id: "heritage", label: "Heritage & history", icon: "book" },
       { id: "beach", label: "Beach & water", icon: "anchor" },
