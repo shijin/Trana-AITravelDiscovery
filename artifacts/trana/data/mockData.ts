@@ -201,7 +201,7 @@ export const quizQuestions: QuizQuestion[] = [
     question: "How are you feeling right now?",
     subtitle: "Be honest — this shapes everything.",
     options: [
-      { id: "exhausted", label: "Exhausted and need quiet", icon: "leaf" },
+      { id: "exhausted", label: "Exhausted and need quiet", icon: "moon" },
       { id: "excited", label: "Excited and ready to explore", icon: "zap" },
       { id: "romantic", label: "In the mood for romance", icon: "heart" },
       { id: "curious", label: "Curious and want to discover", icon: "compass" },

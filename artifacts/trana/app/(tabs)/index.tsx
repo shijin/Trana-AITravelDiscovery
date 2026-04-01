@@ -1,9 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
-  Image,
+  Animated,
   Platform,
   ScrollView,
   StyleSheet,
@@ -22,11 +22,60 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { wishlist, userEmail } = useApp();
-  const topPad =
-    Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 84 + 20 : insets.bottom + 64 + 20;
 
   const featured = destinations.slice(0, 3);
+
+  const pulse1 = useRef(new Animated.Value(1)).current;
+  const pulse2 = useRef(new Animated.Value(1)).current;
+  const pulse3 = useRef(new Animated.Value(1)).current;
+  const gradShift = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const makePulse = (anim: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(anim, {
+            toValue: 1.3,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+
+    Animated.parallel([
+      makePulse(pulse1, 0),
+      makePulse(pulse2, 300),
+      makePulse(pulse3, 600),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(gradShift, {
+          toValue: 1,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(gradShift, {
+          toValue: 0,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const gradOverlayOpacity = gradShift.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.25],
+  });
 
   return (
     <ScrollView
@@ -34,26 +83,54 @@ export default function HomeScreen() {
       contentContainerStyle={{ paddingBottom: bottomPad }}
       showsVerticalScrollIndicator={false}
     >
-      <LinearGradient
-        colors={[colors.primary, colors.tealDark]}
-        style={[styles.header, { paddingTop: topPad + 20 }]}
-      >
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.greeting}>
-              {userEmail ? `Welcome back` : `Welcome to`}
-            </Text>
-            <Text style={styles.appName}>Trāna</Text>
-            <Text style={styles.tagline}>Know where you belong before you go.</Text>
+      <View>
+        <LinearGradient
+          colors={[colors.primary, colors.tealDark]}
+          style={[styles.header, { paddingTop: topPad + 20 }]}
+        >
+          <Animated.View
+            style={[
+              StyleSheet.absoluteFill,
+              { opacity: gradOverlayOpacity, backgroundColor: colors.tealDark },
+            ]}
+            pointerEvents="none"
+          />
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.greeting}>
+                {userEmail ? `Welcome back` : `Welcome to`}
+              </Text>
+              <Text style={styles.appName}>Trāna</Text>
+              <Text style={styles.tagline}>
+                Know where you belong before you go.
+              </Text>
+              <View style={styles.goldDots}>
+                {[pulse1, pulse2, pulse3].map((anim, i) => (
+                  <Animated.View
+                    key={i}
+                    style={[
+                      styles.goldDot,
+                      {
+                        backgroundColor: colors.gold,
+                        transform: [{ scale: anim }],
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push("/profile")}
+              style={[
+                styles.avatarBtn,
+                { backgroundColor: "rgba(255,255,255,0.2)" },
+              ]}
+            >
+              <Feather name="user" size={22} color="#fff" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push("/profile")}
-            style={[styles.avatarBtn, { backgroundColor: "rgba(255,255,255,0.2)" }]}
-          >
-            <Feather name="user" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      </View>
 
       <View style={styles.quickActions}>
         <TouchableOpacity
@@ -134,14 +211,22 @@ export default function HomeScreen() {
                       { backgroundColor: colors.tealLight },
                     ]}
                   >
-                    <Text style={[styles.smallTagText, { color: colors.tealDark }]}>
+                    <Text
+                      style={[
+                        styles.smallTagText,
+                        { color: colors.tealDark },
+                      ]}
+                    >
                       {t}
                     </Text>
                   </View>
                 ))}
               </View>
               <Text
-                style={[styles.featuredRationale, { color: colors.mutedForeground }]}
+                style={[
+                  styles.featuredRationale,
+                  { color: colors.mutedForeground },
+                ]}
                 numberOfLines={2}
               >
                 {dest.rationale}
@@ -186,7 +271,10 @@ export default function HomeScreen() {
                   end={{ x: 1, y: 1 }}
                 />
                 <Text
-                  style={[styles.wishlistChipName, { color: colors.primary }]}
+                  style={[
+                    styles.wishlistChipName,
+                    { color: colors.primary },
+                  ]}
                 >
                   {dest.name}
                 </Text>
@@ -224,6 +312,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 28,
+    overflow: "hidden",
   },
   headerContent: {
     flexDirection: "row",
@@ -245,6 +334,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontStyle: "italic",
     marginTop: 2,
+  },
+  goldDots: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 12,
+    alignItems: "center",
+  },
+  goldDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   avatarBtn: {
     width: 44,

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -15,30 +15,85 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { quizQuestions } from "@/data/mockData";
 import QuizOption from "@/components/QuizOption";
+import QuizBackground from "@/components/QuizBackground";
 import { useApp } from "@/context/AppContext";
+
+const TOTAL = quizQuestions.length;
 
 export default function QuizScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setQuizAnswers } = useApp();
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
-  const progressAnim = useRef(new Animated.Value(0)).current;
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const screenWidth = Dimensions.get("window").width;
   const multiItemWidth = Math.floor((screenWidth - 48 - 12) / 2);
+  const trackWidth = screenWidth - 40;
 
-  const question = quizQuestions[step];
-  const isLast = step === quizQuestions.length - 1;
-  const totalSteps = quizQuestions.length;
-  const progress = (step + 1) / totalSteps;
+  const [step, setStep] = useState(0);
+  const [displayStep, setDisplayStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
 
+  const progressAnim = useRef(new Animated.Value(1 / TOTAL)).current;
+  const transOpacity = useRef(new Animated.Value(1)).current;
+  const transSlide = useRef(new Animated.Value(0)).current;
+
+  const question = quizQuestions[displayStep];
+  const isLast = displayStep === TOTAL - 1;
   const currentAnswer = answers[question.id] as string | string[] | undefined;
   const hasAnswer = question.multiSelect
     ? Array.isArray(currentAnswer) && currentAnswer.length > 0
     : !!currentAnswer;
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, trackWidth],
+  });
+
+  const animateToStep = useCallback(
+    (newStep: number) => {
+      Animated.parallel([
+        Animated.timing(transOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(transSlide, {
+          toValue: -10,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setDisplayStep(newStep);
+        transSlide.setValue(15);
+        Animated.parallel([
+          Animated.timing(transOpacity, {
+            toValue: 1,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(transSlide, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+    },
+    [transOpacity, transSlide]
+  );
+
+  const animateProgress = useCallback(
+    (nextStep: number) => {
+      Animated.timing(progressAnim, {
+        toValue: (nextStep + 1) / TOTAL,
+        duration: 400,
+        useNativeDriver: false,
+      }).start();
+    },
+    [progressAnim]
+  );
 
   const handleSelect = (optionId: string) => {
     if (question.multiSelect) {
@@ -64,38 +119,61 @@ export default function QuizScreen() {
         city: answers[7] as string,
       });
       router.push("/recommendations");
-    } else {
-      Animated.timing(progressAnim, {
-        toValue: progress,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-      setStep(step + 1);
+      return;
     }
+    const nextStep = step + 1;
+    setStep(nextStep);
+    animateProgress(nextStep);
+    animateToStep(nextStep);
   };
 
   const handleBack = () => {
     if (step === 0) {
       router.back();
-    } else {
-      setStep(step - 1);
+      return;
     }
+    const prevStep = step - 1;
+    setStep(prevStep);
+    animateProgress(prevStep);
+    animateToStep(prevStep);
   };
 
+  const progressGlow = Platform.select({
+    web: {
+      boxShadow: "0 0 8px rgba(13, 115, 119, 0.4)",
+    } as any,
+    default: {
+      shadowColor: "#0D7377",
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.4,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+  });
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={styles.container}>
+      <QuizBackground questionIndex={displayStep} />
+
       <View
         style={[
           styles.header,
-          { paddingTop: topPad + 12, backgroundColor: colors.card, borderBottomColor: colors.border },
+          {
+            paddingTop: topPad + 12,
+            backgroundColor: "rgba(255,255,255,0.9)",
+            borderBottomColor: colors.border,
+          },
         ]}
       >
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={handleBack} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+          <TouchableOpacity
+            onPress={handleBack}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          >
             <Feather name="arrow-left" size={22} color={colors.foreground} />
           </TouchableOpacity>
           <Text style={[styles.stepText, { color: colors.mutedForeground }]}>
-            Step {step + 1} of {totalSteps}
+            Step {step + 1} of {TOTAL}
           </Text>
           <TouchableOpacity onPress={() => router.push("/recommendations")}>
             <Text style={[styles.skipText, { color: colors.tealDark }]}>
@@ -103,72 +181,87 @@ export default function QuizScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-          <View
+        <View
+          style={[
+            styles.progressTrack,
+            { backgroundColor: colors.border, width: trackWidth },
+          ]}
+        >
+          <Animated.View
             style={[
               styles.progressFill,
-              {
-                backgroundColor: colors.tealDark,
-                width: `${(step / (totalSteps - 1)) * 100}%`,
-              },
+              { backgroundColor: colors.tealDark, width: progressWidth },
+              progressGlow,
             ]}
           />
         </View>
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: bottomPad + 100 },
         ]}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        scrollEnabled
+        scrollToOverflowEnabled={false}
       >
-        <Text style={[styles.question, { color: colors.primary }]}>
-          {question.question}
-        </Text>
-        <Text style={[styles.questionSub, { color: colors.mutedForeground }]}>
-          {question.subtitle}
-        </Text>
+        <Animated.View
+          style={{
+            opacity: transOpacity,
+            transform: [{ translateY: transSlide }],
+          }}
+        >
+          <Text style={[styles.question, { color: colors.primary }]}>
+            {question.question}
+          </Text>
+          <Text style={[styles.questionSub, { color: colors.mutedForeground }]}>
+            {question.subtitle}
+          </Text>
 
-        {question.multiSelect ? (
-          <View style={styles.multiGrid}>
-            {question.options.map((opt) => (
-              <QuizOption
-                key={opt.id}
-                label={opt.label}
-                icon={opt.icon}
-                selected={
-                  Array.isArray(currentAnswer) &&
-                  currentAnswer.includes(opt.id)
-                }
-                onPress={() => handleSelect(opt.id)}
-                compact
-                style={{ width: multiItemWidth }}
-              />
-            ))}
-          </View>
-        ) : (
-          <View style={styles.optionsList}>
-            {question.options.map((opt) => (
-              <QuizOption
-                key={opt.id}
-                label={opt.label}
-                icon={opt.icon}
-                selected={currentAnswer === opt.id}
-                onPress={() => handleSelect(opt.id)}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
+          {question.multiSelect ? (
+            <View style={styles.multiGrid}>
+              {question.options.map((opt, i) => (
+                <QuizOption
+                  key={opt.id}
+                  label={opt.label}
+                  icon={opt.icon}
+                  selected={
+                    Array.isArray(currentAnswer) &&
+                    currentAnswer.includes(opt.id)
+                  }
+                  onPress={() => handleSelect(opt.id)}
+                  compact
+                  index={i}
+                  style={{ width: multiItemWidth }}
+                />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.optionsList}>
+              {question.options.map((opt, i) => (
+                <QuizOption
+                  key={opt.id}
+                  label={opt.label}
+                  icon={opt.icon}
+                  selected={currentAnswer === opt.id}
+                  onPress={() => handleSelect(opt.id)}
+                  index={i}
+                />
+              ))}
+            </View>
+          )}
+        </Animated.View>
+      </Animated.ScrollView>
 
       <View
         style={[
           styles.footer,
           {
             paddingBottom: bottomPad + 16,
-            backgroundColor: colors.card,
+            backgroundColor: "rgba(255,255,255,0.95)",
             borderTopColor: colors.border,
           },
         ]}
@@ -197,6 +290,7 @@ export default function QuizScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F8F9FA",
   },
   header: {
     paddingHorizontal: 20,
@@ -218,13 +312,13 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   progressTrack: {
-    height: 4,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 3,
     overflow: "hidden",
   },
   progressFill: {
-    height: 4,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 3,
   },
   scroll: {
     flex: 1,

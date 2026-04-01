@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  Animated,
   Platform,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,15 @@ import { destinations } from "@/data/mockData";
 import DestinationCard from "@/components/DestinationCard";
 import { useApp } from "@/context/AppContext";
 
+const ITEM_COUNT = destinations.length + 2;
+
+function makeAnimValues(count: number) {
+  return Array.from({ length: count }, () => ({
+    opacity: new Animated.Value(0),
+    translateY: new Animated.Value(24),
+  }));
+}
+
 export default function RecommendationsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -23,6 +33,36 @@ export default function RecommendationsScreen() {
     useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 + 20 : insets.bottom + 20;
+
+  const animValues = useRef(makeAnimValues(ITEM_COUNT)).current;
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (hasAnimated.current) return;
+    hasAnimated.current = true;
+    const anims = animValues.map((av, i) =>
+      Animated.parallel([
+        Animated.timing(av.opacity, {
+          toValue: 1,
+          duration: 350,
+          delay: i * 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(av.translateY, {
+          toValue: 0,
+          duration: 350,
+          delay: i * 120,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    Animated.parallel(anims).start();
+  }, []);
+
+  const animStyle = (i: number) => ({
+    opacity: animValues[i].opacity,
+    transform: [{ translateY: animValues[i].translateY }],
+  });
 
   const getBudgetLabel = (budget?: string) => {
     if (budget === "under-15k") return "₹15,000";
@@ -90,7 +130,13 @@ export default function RecommendationsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.aiCard, { backgroundColor: colors.blueLight }]}>
+        <Animated.View
+          style={[
+            styles.aiCard,
+            { backgroundColor: colors.blueLight },
+            animStyle(0),
+          ]}
+        >
           <View style={styles.aiCardHeader}>
             <Feather name="compass" size={16} color={colors.tealDark} />
             <Text style={[styles.aiCardLabel, { color: colors.tealDark }]}>
@@ -102,55 +148,59 @@ export default function RecommendationsScreen() {
             budget, and low physical activity — all reachable from{" "}
             {getCityLabel(quizAnswers.city)}.
           </Text>
-        </View>
+        </Animated.View>
 
-        {destinations.map((dest) => (
-          <DestinationCard
-            key={dest.id}
-            destination={dest}
-            onPress={() =>
-              router.push({
-                pathname: "/destination/[id]",
-                params: { id: dest.id, data: JSON.stringify(dest) },
-              })
-            }
-            onSave={() => {
-              if (isWishlisted(dest.id)) {
-                removeFromWishlist(dest.id);
-              } else {
-                addToWishlist(dest);
+        {destinations.map((dest, i) => (
+          <Animated.View key={dest.id} style={animStyle(i + 1)}>
+            <DestinationCard
+              destination={dest}
+              onPress={() =>
+                router.push({
+                  pathname: "/destination/[id]",
+                  params: { id: dest.id, data: JSON.stringify(dest) },
+                })
               }
-            }}
-            saved={isWishlisted(dest.id)}
-          />
+              onSave={() => {
+                if (isWishlisted(dest.id)) {
+                  removeFromWishlist(dest.id);
+                } else {
+                  addToWishlist(dest);
+                }
+              }}
+              saved={isWishlisted(dest.id)}
+            />
+          </Animated.View>
         ))}
 
-        <TouchableOpacity
-          onPress={() => router.push("/chat")}
-          activeOpacity={0.85}
-          style={[
-            styles.refineCard,
-            { backgroundColor: colors.card, borderColor: colors.tealDark },
-          ]}
-        >
-          <Feather name="message-circle" size={20} color={colors.tealDark} />
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={[styles.refineTitle, { color: colors.foreground }]}>
-              Not quite right?
-            </Text>
-            <Text style={[styles.refineSub, { color: colors.mutedForeground }]}>
-              Tell me more about what you're looking for
-            </Text>
-          </View>
+        <Animated.View style={animStyle(destinations.length + 1)}>
           <TouchableOpacity
             onPress={() => router.push("/chat")}
-            style={[styles.refineBtn, { borderColor: colors.primary }]}
+            activeOpacity={0.85}
+            style={[
+              styles.refineCard,
+              { backgroundColor: colors.card, borderColor: colors.tealDark },
+            ]}
           >
-            <Text style={[styles.refineBtnText, { color: colors.primary }]}>
-              Refine with chat
-            </Text>
+            <Feather name="message-circle" size={20} color={colors.tealDark} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={[styles.refineTitle, { color: colors.foreground }]}>
+                Not quite right?
+              </Text>
+              <Text
+                style={[styles.refineSub, { color: colors.mutedForeground }]}
+              >
+                Tell me more about what you're looking for
+              </Text>
+            </View>
+            <View
+              style={[styles.refineBtn, { borderColor: colors.primary }]}
+            >
+              <Text style={[styles.refineBtnText, { color: colors.primary }]}>
+                Refine with chat
+              </Text>
+            </View>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </Animated.View>
       </ScrollView>
     </View>
   );
