@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  FlatList,
+  Animated,
+  Dimensions,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,81 +13,196 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useColors } from "@/hooks/useColors";
-import ChatBubble from "@/components/ChatBubble";
-import TypingIndicator from "@/components/TypingIndicator";
+import { useApp } from "@/context/AppContext";
 
-interface Message {
-  id: string;
-  role: "user" | "ai";
-  text: string;
-  showItineraryBtn?: boolean;
+const BUDGET_OPTIONS = ["Under ₹15,000", "₹15–30K", "₹30–60K", "Above ₹60K"];
+const CITIES = ["Bengaluru", "Mumbai", "Delhi", "Chennai", "Hyderabad", "Kochi", "Pune", "Ahmedabad"];
+const QUICK_ADDS = ["Gokarna", "Hampi", "Coorg"];
+const { width: SCREEN_W } = Dimensions.get("window");
+
+function BuildingOverlay({ destinations }: { destinations: string[] }) {
+  const nodes = destinations.slice(0, 3);
+  const op1 = useRef(new Animated.Value(0)).current;
+  const op2 = useRef(new Animated.Value(0)).current;
+  const op3 = useRef(new Animated.Value(0)).current;
+  const lw1 = useRef(new Animated.Value(0)).current;
+  const lw2 = useRef(new Animated.Value(0)).current;
+  const textOp = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const lineTarget = Math.min(SCREEN_W * 0.18, 80);
+    const seq =
+      nodes.length === 1
+        ? [
+            Animated.timing(op1, { toValue: 1, duration: 250, useNativeDriver: true }),
+          ]
+        : nodes.length === 2
+        ? [
+            Animated.timing(op1, { toValue: 1, duration: 250, useNativeDriver: true }),
+            Animated.timing(lw1, { toValue: lineTarget, duration: 400, useNativeDriver: false }),
+            Animated.timing(op2, { toValue: 1, duration: 250, useNativeDriver: true }),
+          ]
+        : [
+            Animated.timing(op1, { toValue: 1, duration: 250, useNativeDriver: true }),
+            Animated.timing(lw1, { toValue: lineTarget, duration: 350, useNativeDriver: false }),
+            Animated.timing(op2, { toValue: 1, duration: 250, useNativeDriver: true }),
+            Animated.timing(lw2, { toValue: lineTarget, duration: 350, useNativeDriver: false }),
+            Animated.timing(op3, { toValue: 1, duration: 250, useNativeDriver: true }),
+          ];
+
+    Animated.sequence([
+      ...seq,
+      Animated.timing(textOp, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <View style={ol.container}>
+      <View style={ol.routeRow}>
+        <Animated.View style={[ol.nodeWrap, { opacity: op1 }]}>
+          <View style={ol.nodeDot} />
+          <Text style={ol.nodeLabel} numberOfLines={1}>{nodes[0]}</Text>
+        </Animated.View>
+
+        {nodes.length > 1 && (
+          <>
+            <Animated.View style={[ol.line, { width: lw1 }]} />
+            <Animated.View style={[ol.nodeWrap, { opacity: op2 }]}>
+              <View style={ol.nodeDot} />
+              <Text style={ol.nodeLabel} numberOfLines={1}>{nodes[1]}</Text>
+            </Animated.View>
+          </>
+        )}
+
+        {nodes.length > 2 && (
+          <>
+            <Animated.View style={[ol.line, { width: lw2 }]} />
+            <Animated.View style={[ol.nodeWrap, { opacity: op3 }]}>
+              <View style={ol.nodeDot} />
+              <Text style={ol.nodeLabel} numberOfLines={1}>{nodes[2]}</Text>
+            </Animated.View>
+          </>
+        )}
+      </View>
+
+      <Animated.Text style={[ol.planningText, { opacity: textOp }]}>
+        Planning your circuit...
+      </Animated.Text>
+    </View>
+  );
 }
 
-const SUGGESTIONS = [
-  "5 days in Karnataka",
-  "Weekend from Mumbai",
-  "North India 7 days",
-];
+const ol = StyleSheet.create({
+  container: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#1A3C5E",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+  },
+  routeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  nodeWrap: {
+    alignItems: "center",
+    width: 72,
+  },
+  nodeDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#fff",
+    marginBottom: 8,
+  },
+  nodeLabel: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  line: {
+    height: 2,
+    backgroundColor: "rgba(255,255,255,0.35)",
+    marginBottom: 22,
+  },
+  planningText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "center",
+    letterSpacing: 0.3,
+  },
+});
 
-export default function ItineraryBuilderScreen() {
+export default function ItineraryScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "0",
-      role: "ai",
-      text: "Hi! Tell me what kind of trip you're planning — where from, how many days, and what you're in the mood for. I'll build you a circuit.",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [suggestionsSent, setSuggestionsSent] = useState(false);
+  const { quizAnswers } = useApp();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const sendMessage = (text: string) => {
-    if (!text.trim()) return;
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      text: text.trim(),
-    };
-    setMessages((prev) => [userMsg, ...prev]);
-    setInput("");
-    setIsTyping(true);
-    setSuggestionsSent(true);
+  const rawCity = quizAnswers?.city || "";
+  const initialCity = rawCity
+    ? rawCity.charAt(0).toUpperCase() + rawCity.slice(1)
+    : CITIES[0];
 
-    setTimeout(() => {
-      setIsTyping(false);
-      const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "ai",
-        text: "Perfect — here's your 5-day Karnataka circuit starting from Hyderabad, all within ₹15,000.",
-        showItineraryBtn: true,
-      };
-      setMessages((prev) => [aiMsg, ...prev]);
-    }, 1500);
+  const [destinations, setDestinations] = useState<string[]>([]);
+  const [inputText, setInputText] = useState("");
+  const [days, setDays] = useState(3);
+  const [budgetIndex, setBudgetIndex] = useState(1);
+  const [cityIndex, setCityIndex] = useState(
+    Math.max(CITIES.findIndex((c) => c.toLowerCase() === initialCity.toLowerCase()), 0)
+  );
+  const [isBuilding, setIsBuilding] = useState(false);
+
+  const budget = BUDGET_OPTIONS[budgetIndex];
+  const startCity = CITIES[cityIndex];
+  const canBuild = destinations.length > 0;
+
+  const addDestination = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const cap = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    if (!destinations.includes(cap)) {
+      setDestinations((prev) => [...prev, cap]);
+    }
+    setInputText("");
   };
 
-  const renderItem = ({ item }: { item: Message }) => (
-    <View style={styles.messageWrapper}>
-      <ChatBubble role={item.role} text={item.text} />
-      {item.showItineraryBtn && (
-        <TouchableOpacity
-          onPress={() => router.push("/itinerary-detail")}
-          style={[styles.itineraryBtn, { backgroundColor: colors.primary }]}
-        >
-          <Text style={styles.itineraryBtnText}>View full itinerary →</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
+  const removeDestination = (name: string) => {
+    setDestinations((prev) => prev.filter((d) => d !== name));
+  };
+
+  const handleBuild = () => {
+    if (!canBuild) return;
+    setIsBuilding(true);
+    setTimeout(() => {
+      router.push({
+        pathname: "/itinerary-detail",
+        params: {
+          destinations: JSON.stringify(destinations),
+          days: days.toString(),
+          budget,
+          startCity,
+        },
+      });
+      setTimeout(() => setIsBuilding(false), 200);
+    }, 2000);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {isBuilding && <BuildingOverlay destinations={destinations} />}
+
+      {/* Header */}
       <View
         style={[
           styles.header,
@@ -96,136 +213,208 @@ export default function ItineraryBuilderScreen() {
           },
         ]}
       >
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+        >
           <Feather name="arrow-left" size={22} color={colors.foreground} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.primary }]}>
-          Build a circuit
+        <Text style={[styles.headerTitle, { color: "#1A3C5E" }]}>
+          Plan a circuit
         </Text>
-        <View style={{ width: 22 }} />
+        <Feather name="map-pin" size={20} color="#0D7377" />
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior="padding"
-        keyboardVerticalOffset={0}
-      >
-        <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          inverted
-          contentContainerStyle={styles.messageList}
-          ListHeaderComponent={
-            isTyping ? (
-              <View style={{ padding: 16, paddingBottom: 0 }}>
-                <TypingIndicator />
-              </View>
-            ) : null
-          }
-          ListFooterComponent={
-            !suggestionsSent ? (
-              <View>
-                <View
-                  style={[
-                    styles.introCard,
-                    { backgroundColor: colors.blueLight },
-                  ]}
-                >
-                  <Feather name="map-pin" size={20} color={colors.primary} />
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <Text
-                      style={[styles.introTitle, { color: colors.primary }]}
-                    >
-                      Tell me your plan
-                    </Text>
-                    <Text
-                      style={[
-                        styles.introSub,
-                        { color: colors.mutedForeground },
-                      ]}
-                    >
-                      Share your starting city, how many days you have, and
-                      which region interests you — I'll build the route.
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.suggestionsRow}>
-                  {SUGGESTIONS.map((s) => (
-                    <TouchableOpacity
-                      key={s}
-                      onPress={() => sendMessage(s)}
-                      style={[
-                        styles.suggestion,
-                        {
-                          borderColor: colors.tealDark,
-                          backgroundColor: colors.card,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.suggestionText,
-                          { color: colors.tealDark },
-                        ]}
-                      >
-                        {s}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            ) : null
-          }
-          showsVerticalScrollIndicator={false}
-        />
+      {/* Hero */}
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Where do you want to go?</Text>
+        <Text style={styles.heroSub}>
+          Add your destinations and we'll build the route.
+        </Text>
+      </View>
 
-        <View
-          style={[
-            styles.inputBar,
-            {
-              paddingBottom: bottomPad + 12,
-              backgroundColor: colors.card,
-              borderTopColor: colors.border,
-            },
-          ]}
-        >
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder="Where are you starting from?"
-            placeholderTextColor={colors.mutedForeground}
-            style={[
-              styles.input,
-              {
-                borderColor: colors.border,
-                color: colors.foreground,
-                backgroundColor: colors.background,
-              },
-            ]}
-            returnKeyType="send"
-            onSubmitEditing={() => sendMessage(input)}
-          />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: bottomPad + 100 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Step 1 — Destinations */}
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>YOUR DESTINATIONS</Text>
+
+          <View style={styles.inputRow}>
+            <TextInput
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Type a destination e.g. Gokarna"
+              placeholderTextColor={colors.mutedForeground}
+              style={[
+                styles.destInput,
+                {
+                  borderColor: "#E5E7EB",
+                  color: colors.foreground,
+                  backgroundColor: colors.background,
+                },
+              ]}
+              returnKeyType="done"
+              onSubmitEditing={() => addDestination(inputText)}
+            />
+            <TouchableOpacity
+              onPress={() => addDestination(inputText)}
+              style={styles.addBtn}
+            >
+              <Feather name="plus" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {destinations.length > 0 ? (
+            <View style={styles.pillsWrap}>
+              {destinations.map((dest) => (
+                <View key={dest} style={styles.destPill}>
+                  <Feather name="menu" size={13} color="#0D7377" style={{ marginRight: 4 }} />
+                  <Text style={styles.destPillText}>{dest}</Text>
+                  <TouchableOpacity
+                    onPress={() => removeDestination(dest)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{ marginLeft: 6 }}
+                  >
+                    <Feather name="x" size={13} color="#0D7377" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View>
+              <Text style={[styles.quickLabel, { color: colors.mutedForeground }]}>
+                Quick add
+              </Text>
+              <View style={styles.quickRow}>
+                {QUICK_ADDS.map((q) => (
+                  <TouchableOpacity
+                    key={q}
+                    onPress={() => addDestination(q)}
+                    style={[styles.quickChip, { borderColor: "#E5E7EB" }]}
+                  >
+                    <Text style={[styles.quickChipText, { color: colors.mutedForeground }]}>
+                      {q}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Step 2 — Trip Details */}
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>TRIP DETAILS</Text>
+
+          {/* Days stepper */}
+          <View style={styles.detailRow}>
+            <View style={styles.detailLeft}>
+              <Feather name="calendar" size={16} color={colors.mutedForeground} />
+              <Text style={[styles.detailLabel, { color: colors.foreground }]}>
+                Number of days
+              </Text>
+            </View>
+            <View style={styles.stepper}>
+              <TouchableOpacity
+                onPress={() => setDays((d) => Math.max(1, d - 1))}
+                style={[styles.stepperBtn, { borderColor: "#E5E7EB" }]}
+              >
+                <Feather name="minus" size={14} color={colors.foreground} />
+              </TouchableOpacity>
+              <Text style={[styles.stepperVal, { color: colors.foreground }]}>
+                {days}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setDays((d) => Math.min(30, d + 1))}
+                style={[styles.stepperBtn, { borderColor: "#E5E7EB" }]}
+              >
+                <Feather name="plus" size={14} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          {/* Budget */}
           <TouchableOpacity
-            onPress={() => sendMessage(input)}
-            disabled={!input.trim()}
-            style={[
-              styles.sendBtn,
-              { backgroundColor: input.trim() ? colors.primary : colors.border },
-            ]}
+            style={styles.detailRow}
+            onPress={() => setBudgetIndex((i) => (i + 1) % BUDGET_OPTIONS.length)}
+            activeOpacity={0.7}
           >
-            <Feather name="send" size={18} color="#fff" />
+            <View style={styles.detailLeft}>
+              <Feather name="credit-card" size={16} color={colors.mutedForeground} />
+              <Text style={[styles.detailLabel, { color: colors.foreground }]}>
+                Total budget
+              </Text>
+            </View>
+            <View style={styles.selectorRight}>
+              <Text style={[styles.selectorText, { color: "#0D7377" }]}>
+                {budget}
+              </Text>
+              <Feather name="chevron-down" size={14} color="#0D7377" />
+            </View>
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          {/* Starting city */}
+          <TouchableOpacity
+            style={styles.detailRow}
+            onPress={() => setCityIndex((i) => (i + 1) % CITIES.length)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.detailLeft}>
+              <Feather name="map-pin" size={16} color={colors.mutedForeground} />
+              <Text style={[styles.detailLabel, { color: colors.foreground }]}>
+                Starting city
+              </Text>
+            </View>
+            <View style={styles.selectorRight}>
+              <Text style={[styles.selectorText, { color: "#0D7377" }]}>
+                {startCity}
+              </Text>
+              <Feather name="chevron-down" size={14} color="#0D7377" />
+            </View>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
+
+      {/* Build Button */}
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: bottomPad + 16,
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={handleBuild}
+          disabled={!canBuild}
+          activeOpacity={0.85}
+          style={[
+            styles.buildBtn,
+            { backgroundColor: canBuild ? "#1A3C5E" : colors.border },
+          ]}
+        >
+          <Text style={styles.buildBtnText}>Build my circuit →</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -237,78 +426,164 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-  introCard: {
-    flexDirection: "row",
-    gap: 12,
-    margin: 16,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "flex-start",
+  hero: {
+    backgroundColor: "#1A3C5E",
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  introTitle: {
-    fontSize: 16,
+  heroTitle: {
+    color: "#fff",
+    fontSize: 20,
     fontWeight: "700",
+    marginBottom: 4,
   },
-  introSub: {
+  heroSub: {
+    color: "rgba(255,255,255,0.75)",
     fontSize: 14,
     lineHeight: 20,
   },
-  messageList: {
+  scroll: {
     padding: 16,
-    gap: 8,
+    gap: 16,
   },
-  messageWrapper: {
-    gap: 10,
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    gap: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  itineraryBtn: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginLeft: 4,
-  },
-  itineraryBtnText: {
-    color: "#fff",
-    fontSize: 15,
+  sectionLabel: {
+    color: "#0D7377",
+    fontSize: 11,
     fontWeight: "600",
+    letterSpacing: 1,
   },
-  suggestionsRow: {
+  inputRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  destInput: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    paddingHorizontal: 16,
+    fontSize: 15,
+  },
+  addBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#0D7377",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  pillsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
   },
-  suggestion: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  suggestionText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  inputBar: {
+  destPill: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    gap: 10,
-    borderTopWidth: 1,
+    backgroundColor: "#fff",
+    borderWidth: 1.5,
+    borderColor: "#0D7377",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  input: {
-    flex: 1,
-    height: 44,
-    borderRadius: 22,
+  destPillText: {
+    color: "#0D7377",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  quickLabel: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  quickRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  quickChip: {
     borderWidth: 1,
-    paddingHorizontal: 16,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  quickChipText: {
+    fontSize: 13,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  detailLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  detailLabel: {
     fontSize: 15,
   },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  stepperBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  stepperVal: {
+    fontSize: 16,
+    fontWeight: "600",
+    minWidth: 24,
+    textAlign: "center",
+  },
+  selectorRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  selectorText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  divider: {
+    height: 1,
+  },
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+  },
+  buildBtn: {
+    height: 52,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buildBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });

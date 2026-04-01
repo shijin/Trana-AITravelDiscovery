@@ -1,0 +1,210 @@
+Completely redesign the Plan Circuit screen (/itinerary) 
+so it feels like a trip planner, NOT a chat interface.
+
+PROBLEM: Plan Circuit and Chat Refinement currently look identical.
+They both show a chat box. This is confusing UX.
+
+SOLUTION: Replace the Plan Circuit screen with a structured 
+input-first planner interface.
+
+NEW PLAN CIRCUIT SCREEN DESIGN:
+
+Header: Back arrow + "Plan a circuit" (bold, #1A3C5E) + 
+map-pin icon in teal (right)
+
+Hero section (background #1A3C5E, padding 20px, border-radius 
+0 0 24px 24px):
+  White text: "Where do you want to go?" 20px bold
+  Subtext: "Add your destinations and we'll build the route." 
+  white opacity 0.75, 14px
+
+STEP 1 — Destination Input (card, white, margin 16px, 
+border-radius 12px, padding 16px):
+  Label: "YOUR DESTINATIONS" #0D7377 11px weight 600 
+  letter-spacing 1px
+
+  Destination input row:
+  Text input (full width, placeholder "Type a destination e.g. Gokarna",
+  border 1.5px solid #E5E7EB, border-radius 8px, height 48px, 
+  padding 0 16px) + 
+  Add button (48px circle, background #0D7377, white + icon)
+
+  Added destinations appear as draggable pills below input:
+  Each pill: destination name + X remove button + 
+  drag handle icon (left)
+  Pill style: white background, border 1.5px solid #0D7377, 
+  border-radius 20px, padding 6px 12px, 
+  destination text #0D7377 14px weight 500
+
+  When user types and taps Add: destination appears as pill
+  
+  Store destinations in state array: []
+  Pre-populate with suggestions if empty:
+  Show 3 quick-add chips: "Gokarna" "Hampi" "Coorg"
+  Each chip: border 1px solid #E5E7EB, gray text, 
+  tap to add to destinations list
+
+STEP 2 — Trip Details (card, white, margin 16px top, 
+border-radius 12px, padding 16px):
+  Label: "TRIP DETAILS" styled same as above
+  
+  Two input rows:
+  Row 1: Calendar icon + "Number of days" label (left) + 
+  number stepper (right): minus button, number display, plus button
+  (min 1, max 30, default 3)
+  
+  Row 2: Wallet icon + "Total budget" label (left) + 
+  dropdown selector (right) with options:
+  Under ₹15,000 / ₹15–30K / ₹30–60K / Above ₹60K
+
+  Row 3: Map pin icon + "Starting city" label (left) +
+  text showing selected city from quiz OR "Select city" 
+  dropdown (right)
+
+STEP 3 — Build Button:
+  Full-width PrimaryButton: "Build my circuit →"
+  Disabled (gray) if destinations array is empty
+  Active (navy #1A3C5E) when at least 1 destination added
+
+ON BUTTON TAP:
+  Show a loading state (full-screen overlay, navy background):
+  Animated route line drawing from city to city (CSS animation)
+  Text: "Planning your circuit..." white, centered
+  Show for 2000ms then navigate to /itinerary/detail
+
+ITINERARY DETAIL — DYNAMIC CONTENT:
+  The itinerary detail screen must now READ the user's 
+  actual destination inputs and days to generate the plan.
+
+  Build this function in the component:
+
+  function buildItinerary(destinations, totalDays, budget, startCity) {
+    const daysPerDestination = Math.floor(totalDays / destinations.length)
+    const remainder = totalDays % destinations.length
+    
+    const destinationData = {
+      'gokarna': {
+        experiences: ['Kudle Beach at sunset', 'Om Beach morning walk', 
+          'Mahabaleshwar Temple', 'Half Moon Beach hike'],
+        food: 'Fresh seafood at Om Beach shacks',
+        stay: 'Beach hostel or guesthouse — ₹600–800/night',
+        travelNote: 'Best by overnight bus from Goa or Bengaluru',
+        costPerDay: 1200
+      },
+      'hampi': {
+        experiences: ['Virupaksha Temple at sunrise', 
+          'Vittala Temple complex', 'Sunset at Matanga Hill',
+          'Royal Enclosure & Lotus Mahal', 'Boulder hopping'],
+        food: 'Millet dosa at Mango Tree restaurant',
+        stay: 'Guesthouse near boulders — ₹700–1000/night',
+        travelNote: '3 hrs from Gokarna, 7 hrs from Hyderabad',
+        costPerDay: 1500
+      },
+      'coorg': {
+        experiences: ['Abbey Falls morning visit', 
+          'Coffee estate walk', 'Raja\'s Seat sunset',
+          'Namdroling Monastery', 'Dubare Elephant Camp'],
+        food: 'Pandi curry and Akki roti at local homestay',
+        stay: 'Coffee estate homestay — ₹1200–2000/night',
+        travelNote: '4 hrs from Bengaluru',
+        costPerDay: 2000
+      },
+      'munnar': {
+        experiences: ['Tea plantation sunrise walk',
+          'Eravikulam National Park', 'Mattupetty Dam',
+          'Tea Museum visit', 'Top Station viewpoint'],
+        food: 'Kerala breakfast — puttu, kadala curry, filter coffee',
+        stay: 'Tea estate bungalow — ₹1500–2500/night',
+        travelNote: '4 hrs from Kochi airport',
+        costPerDay: 2200
+      },
+      'alleppey': {
+        experiences: ['Houseboat backwater cruise',
+          'Sunrise kayaking in canals', 'Kumarakom bird sanctuary',
+          'Vembanad Lake sunset', 'Village walk along canals'],
+        food: 'Karimeen pollichathu (pearl spot fish) — Kerala specialty',
+        stay: 'Houseboat night stay — ₹3500–5000/night',
+        travelNote: '1.5 hrs from Kochi',
+        costPerDay: 3000
+      },
+      'mysuru': {
+        experiences: ['Mysuru Palace evening lights',
+          'Devaraja Market walk', 'Chamundi Hill temple',
+          'Brindavan Gardens evening', 'Mysuru Zoo'],
+        food: 'Mysuru pak sweet, bisi bele bath, set dosa',
+        stay: 'Heritage hotel near palace — ₹1500–2500/night',
+        travelNote: '3 hrs from Bengaluru',
+        costPerDay: 1800
+      },
+      'pondicherry': {
+        experiences: ['French Quarter morning walk',
+          'Promenade Beach sunrise', 'Auroville visit',
+          'Sri Aurobindo Ashram', 'White Town cafes'],
+        food: 'Crepes and cafe au lait at Baker Street',
+        stay: 'French Quarter heritage guesthouse — ₹1800–3000/night',
+        travelNote: '3 hrs from Chennai',
+        costPerDay: 2500
+      },
+      'jaipur': {
+        experiences: ['Amber Fort morning visit',
+          'City Palace and museum', 'Hawa Mahal photo stop',
+          'Jantar Mantar', 'Johari Bazaar shopping'],
+        food: 'Dal baati churma, laal maas, ghevar sweet',
+        stay: 'Heritage haveli stay — ₹2000–4000/night',
+        travelNote: '5 hrs from Delhi',
+        costPerDay: 2500
+      },
+      'varanasi': {
+        experiences: ['Ganga Aarti at Dashashwamedh Ghat',
+          'Sunrise boat ride on the Ganges',
+          'Kashi Vishwanath Temple', 'Sarnath ruins',
+          'Old city lane walk at dawn'],
+        food: 'Kachori sabzi, thandai, malaiyo (winter)',
+        stay: 'Heritage guesthouse near ghats — ₹800–1500/night',
+        travelNote: 'Well connected by train from all major cities',
+        costPerDay: 1500
+      },
+      'rishikesh': {
+        experiences: ['Morning yoga at Parmarth Niketan',
+          'River rafting on the Ganga', 'Laxman Jhula walk',
+          'Beatles Ashram visit', 'Ganga Aarti at Triveni Ghat'],
+        food: 'Pure veg cafes — try The Sitting Elephant',
+        stay: 'Ashram stay or riverside camp — ₹600–1500/night',
+        travelNote: '6 hrs from Delhi',
+        costPerDay: 1200
+      }
+    }
+    
+    return destinations.map((dest, index) => {
+      const key = dest.toLowerCase().replace(/\s+/g, '')
+      const data = destinationData[key] || {
+        experiences: [`Explore ${dest} old town`, 
+          `Local market visit`, `Sunset point`],
+        food: `Try local specialties at ${dest}`,
+        stay: `Mid-range hotel — ₹800–1500/night`,
+        travelNote: `Check connectivity from ${startCity}`,
+        costPerDay: 1500
+      }
+      
+      const days = index === destinations.length - 1 
+        ? daysPerDestination + remainder 
+        : daysPerDestination
+      
+      return {
+        destination: dest,
+        days: days,
+        experiences: data.experiences.slice(0, days + 2),
+        food: data.food,
+        stay: data.stay,
+        travelNote: data.travelNote,
+        totalCost: data.costPerDay * days
+      }
+    })
+  }
+
+  Use this function to render the itinerary detail cards dynamically.
+  The trip title should say: 
+  "[destinations.join(' + ')] — [totalDays] days"
+  
+  The summary bar should show the actual destinations and total cost.
+  Each day card must reflect the actual destination and its data.
