@@ -1,0 +1,912 @@
+Build a complete mobile-first React web application called "Trāna" — 
+an AI-powered travel discovery app for Indian travelers. 
+This is a production-quality MVP demo with mock AI data and Supabase authentication.
+
+═══════════════════════════════════════════
+PROJECT SETUP
+═══════════════════════════════════════════
+
+Framework: React 18 with Vite
+Styling: Tailwind CSS
+Routing: React Router v6
+Auth & Database: Supabase (@supabase/supabase-js)
+Icons: lucide-react
+Fonts: Load "Inter" from Google Fonts
+
+Install dependencies:
+- @supabase/supabase-js
+- react-router-dom
+- lucide-react
+- tailwindcss
+
+Folder structure:
+src/
+  components/       (reusable UI components)
+  screens/          (one file per screen)
+  data/             (mock data)
+  lib/              (supabase client)
+  context/          (auth context)
+  App.jsx
+  main.jsx
+
+═══════════════════════════════════════════
+ENVIRONMENT VARIABLES
+═══════════════════════════════════════════
+
+Create a .env file with:
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+Create src/lib/supabase.js:
+import { createClient } from '@supabase/supabase-js'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+═══════════════════════════════════════════
+DESIGN SYSTEM — Apply across ALL screens
+═══════════════════════════════════════════
+
+COLORS:
+Primary Navy:     #1A3C5E  (headings, primary buttons, nav active)
+Primary Teal:     #0D7377  (accents, highlights, tags, links)
+Gold Accent:      #C9962B  (CTAs, save actions, badges)
+Background:       #F8F9FA  (app background)
+Card White:       #FFFFFF  (cards, modals)
+Text Primary:     #1A1A1A  (body text)
+Text Secondary:   #666666  (captions, labels)
+Light Blue:       #D6E8F5  (info backgrounds, quiz cards)
+Light Teal:       #D6F0EF  (tag backgrounds)
+Border:           #E5E7EB  (card borders, dividers)
+Success Green:    #0D7377
+Warning Amber:    #C9962B
+
+TYPOGRAPHY:
+Font family: Inter, sans-serif
+Heading 1: 28px, weight 700, color #1A3C5E
+Heading 2: 22px, weight 600, color #1A3C5E
+Heading 3: 18px, weight 600, color #1A1A1A
+Body Large: 16px, weight 400, color #1A1A1A, line-height 1.6
+Body Small: 14px, weight 400, color #666666
+Caption: 12px, weight 400, color #666666
+Button text: 16px, weight 600
+
+SPACING:
+Mobile viewport: 375px max-width, centered
+Screen padding: 20px horizontal
+Card padding: 16px
+Section gap: 24px
+Component gap: 12px
+Border radius: 12px for cards, 8px for buttons, 24px for pills
+
+COMPONENTS — Build these as reusable components:
+
+1. PrimaryButton: 
+   - Full width, height 52px, border-radius 8px
+   - Background #1A3C5E, text white, font-weight 600
+   - Hover: background #0D2D47
+   - Active: scale 0.98
+
+2. SecondaryButton:
+   - Full width, height 52px, border-radius 8px  
+   - Border 2px solid #1A3C5E, text #1A3C5E, background transparent
+   - Hover: background #D6E8F5
+
+3. DestinationCard:
+   - Full width, border-radius 12px, white background
+   - Shadow: 0 2px 8px rgba(0,0,0,0.08)
+   - Contains: hero image placeholder (gradient), destination name,
+     state/region tag, personalised rationale text (2-3 lines, italic),
+     budget estimate row, season tag, save icon button (bookmark)
+
+4. QuizOptionButton:
+   - Full width, height 56px, border-radius 8px
+   - Border 1.5px solid #E5E7EB, background white
+   - Selected state: border 2px solid #0D7377, background #D6F0EF,
+     checkmark icon on right
+   - Left icon + label text
+
+5. TagPill:
+   - Height 28px, padding 0 12px, border-radius 24px
+   - Background #D6F0EF, text #0D7377, font-size 12px, font-weight 500
+
+6. VideoCard:
+   - Width 160px, border-radius 8px
+   - Thumbnail placeholder (dark gradient), play icon overlay
+   - Below: video title (2 lines max), creator name, view count
+   - Companion type badge (top left): Couple / Solo / Family
+
+7. BottomNav:
+   - Fixed bottom, height 64px, background white
+   - Border-top 1px solid #E5E7EB
+   - 4 tabs: Home (house icon), Discover (compass icon),
+     Wishlist (bookmark icon), Profile (user icon)
+   - Active tab: icon + label in #0D7377
+   - Inactive: icon + label in #999999
+
+8. ProgressBar:
+   - Full width, height 4px, border-radius 2px
+   - Background #E5E7EB
+   - Fill: #0D7377, animated width transition
+
+9. ChatBubble:
+   - User bubble: right-aligned, background #1A3C5E, text white,
+     border-radius 16px 16px 4px 16px, max-width 80%
+   - AI bubble: left-aligned, background #F0F4F8, text #1A1A1A,
+     border-radius 16px 16px 16px 4px, max-width 80%
+
+10. BudgetRow:
+    - Three columns: Transport / Stay / Food
+    - Each: icon + label + ₹ amount
+    - Total row below: bold, #1A3C5E
+
+═══════════════════════════════════════════
+MOCK DATA — src/data/mockData.js
+═══════════════════════════════════════════
+
+Export the following:
+
+destinations = [
+  {
+    id: 1,
+    name: "Coorg",
+    state: "Karnataka",
+    region: "Western Ghats",
+    heroGradient: "from-green-800 to-green-600",
+    tags: ["Nature", "Quiet", "Hill Station"],
+    rationale: "Perfect for switching off — misty hills, coffee estates, and zero tourist noise. You can walk at your own pace with no agenda.",
+    budgetBreakdown: { transport: 3200, stay: 8000, food: 2500 },
+    totalBudget: 13700,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["solo", "couple"],
+    foodHighlights: ["Pandi curry", "Akki roti", "Filter coffee"],
+    videos: [
+      { id: 1, title: "Coorg in 3 days — solo travel guide", creator: "Nomadic Nisha", views: "284K", companionType: "solo", thumbnail: "from-green-900 to-green-700" },
+      { id: 2, title: "Coorg couple trip — hidden spots", creator: "Travel with Riya & Raj", views: "156K", companionType: "couple", thumbnail: "from-emerald-800 to-teal-700" }
+    ]
+  },
+  {
+    id: 2,
+    name: "Hampi",
+    state: "Karnataka",
+    region: "North Karnataka",
+    heroGradient: "from-orange-700 to-amber-600",
+    tags: ["Heritage", "Offbeat", "Couple-Friendly"],
+    rationale: "Dramatic boulder landscapes, ancient temples, and boutique stays — romantic without being clichéd. Fewer crowds than you'd expect.",
+    budgetBreakdown: { transport: 2800, stay: 7000, food: 2200 },
+    totalBudget: 12000,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "moderate",
+    companionTypes: ["couple", "solo"],
+    foodHighlights: ["Millet dosa", "Banana lassi", "Local thali"],
+    videos: [
+      { id: 3, title: "Hampi couple travel — everything you need", creator: "Wandering Together", views: "312K", companionType: "couple", thumbnail: "from-orange-800 to-amber-700" },
+      { id: 4, title: "Hampi solo — 2 day itinerary", creator: "Solo Miles India", views: "198K", companionType: "solo", thumbnail: "from-yellow-800 to-orange-700" }
+    ]
+  },
+  {
+    id: 3,
+    name: "Pondicherry",
+    state: "Tamil Nadu",
+    region: "Coromandel Coast",
+    heroGradient: "from-blue-700 to-cyan-600",
+    tags: ["Beach", "French Quarter", "Calm"],
+    rationale: "A rare blend of French colonial architecture, quiet beaches, and excellent food. Perfect for couples who want culture without the chaos.",
+    budgetBreakdown: { transport: 2400, stay: 9000, food: 3000 },
+    totalBudget: 14400,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["couple", "solo", "senior"],
+    foodHighlights: ["Crepes", "Seafood curry", "Banana blossom salad"],
+    videos: [
+      { id: 5, title: "Pondy couple guide — best of White Town", creator: "Travel with Meera", views: "445K", companionType: "couple", thumbnail: "from-blue-800 to-blue-600" }
+    ]
+  },
+  {
+    id: 4,
+    name: "Mysuru",
+    state: "Karnataka",
+    region: "South Karnataka",
+    heroGradient: "from-purple-700 to-indigo-600",
+    tags: ["Heritage", "Senior-Friendly", "Comfortable"],
+    rationale: "Wide roads, excellent connectivity, world-famous palace, and a relaxed pace. Ideal for travelers who want culture without exertion.",
+    budgetBreakdown: { transport: 1800, stay: 6000, food: 2000 },
+    totalBudget: 9800,
+    bestMonths: ["Sep", "Oct", "Nov", "Dec", "Jan"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    medicalFacilities: "Manipal Hospital — 2.4 km",
+    companionTypes: ["senior", "family", "couple"],
+    foodHighlights: ["Mysuru pak", "Bisi bele bath", "Set dosa"],
+    videos: [
+      { id: 6, title: "Mysuru — the perfect senior-friendly trip", creator: "Family Travels India", views: "167K", companionType: "senior", thumbnail: "from-purple-800 to-purple-600" }
+    ]
+  },
+  {
+    id: 5,
+    name: "Meghalaya",
+    state: "Meghalaya",
+    region: "Northeast India",
+    heroGradient: "from-teal-700 to-green-600",
+    tags: ["Nature", "Adventure", "Offbeat"],
+    rationale: "Living root bridges, the wettest place on earth, and landscapes unlike anything in India. For travelers who want to be genuinely surprised.",
+    budgetBreakdown: { transport: 8500, stay: 9000, food: 3000 },
+    totalBudget: 20500,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "high",
+    companionTypes: ["solo", "couple"],
+    foodHighlights: ["Jadoh", "Dohneiiong", "Tungrymbai"],
+    videos: [
+      { id: 7, title: "Meghalaya — 5 days in the clouds", creator: "Northeast Explorer", views: "521K", companionType: "solo", thumbnail: "from-teal-800 to-emerald-700" }
+    ]
+  }
+]
+
+quizQuestions = [
+  {
+    id: 1,
+    question: "How are you feeling right now?",
+    subtitle: "Be honest — this shapes everything.",
+    options: [
+      { id: "exhausted", label: "Exhausted and need quiet", icon: "🌿" },
+      { id: "excited", label: "Excited and ready to explore", icon: "⚡" },
+      { id: "romantic", label: "In the mood for romance", icon: "✨" },
+      { id: "curious", label: "Curious and want to discover", icon: "🧭" }
+    ]
+  },
+  {
+    id: 2,
+    question: "Who are you traveling with?",
+    subtitle: "This helps us match the right vibe.",
+    options: [
+      { id: "solo", label: "Just me", icon: "🎒" },
+      { id: "couple", label: "My partner", icon: "💑" },
+      { id: "family", label: "Family with kids", icon: "👨‍👩‍👧" },
+      { id: "senior", label: "With parents or seniors", icon: "🤝" },
+      { id: "friends", label: "Friends group", icon: "👯" }
+    ]
+  },
+  {
+    id: 3,
+    question: "How many days do you have?",
+    subtitle: "We'll plan around your time.",
+    options: [
+      { id: "2-3", label: "2–3 days (quick escape)", icon: "⚡" },
+      { id: "4-5", label: "4–5 days (sweet spot)", icon: "🗓️" },
+      { id: "6-7", label: "6–7 days (proper holiday)", icon: "🌴" },
+      { id: "8+", label: "8+ days (go deep)", icon: "🌍" }
+    ]
+  },
+  {
+    id: 4,
+    question: "What's your total budget for this trip?",
+    subtitle: "Transport + stay + food — all in.",
+    options: [
+      { id: "under-15k", label: "Under ₹15,000", icon: "💰" },
+      { id: "15-30k", label: "₹15,000 – ₹30,000", icon: "💰" },
+      { id: "30-60k", label: "₹30,000 – ₹60,000", icon: "💰" },
+      { id: "60k+", label: "Above ₹60,000", icon: "💎" }
+    ]
+  },
+  {
+    id: 5,
+    question: "What kind of experience are you after?",
+    subtitle: "Pick everything that feels right.",
+    multiSelect: true,
+    options: [
+      { id: "nature", label: "Nature & outdoors", icon: "🌿" },
+      { id: "food", label: "Food & local culture", icon: "🍛" },
+      { id: "heritage", label: "Heritage & history", icon: "🏛️" },
+      { id: "beach", label: "Beach & water", icon: "🌊" },
+      { id: "adventure", label: "Adventure & trekking", icon: "⛰️" },
+      { id: "spiritual", label: "Spiritual & wellness", icon: "🪔" }
+    ]
+  },
+  {
+    id: 6,
+    question: "How much walking are you comfortable with?",
+    subtitle: "No judgment — we'll plan accordingly.",
+    options: [
+      { id: "low", label: "Minimal — comfortable & easy", icon: "🚗" },
+      { id: "moderate", label: "Moderate — some walking is fine", icon: "🚶" },
+      { id: "high", label: "High — I enjoy physical activity", icon: "🏃" }
+    ]
+  },
+  {
+    id: 7,
+    question: "Where are you traveling from?",
+    subtitle: "We'll factor in flight time.",
+    options: [
+      { id: "mumbai", label: "Mumbai", icon: "🏙️" },
+      { id: "delhi", label: "Delhi", icon: "🏙️" },
+      { id: "bengaluru", label: "Bengaluru", icon: "🏙️" },
+      { id: "hyderabad", label: "Hyderabad", icon: "🏙️" },
+      { id: "pune", label: "Pune", icon: "🏙️" },
+      { id: "chennai", label: "Chennai", icon: "🏙️" },
+      { id: "other", label: "Other city", icon: "📍" }
+    ]
+  }
+]
+
+itineraryData = {
+  title: "Karnataka in 5 days",
+  startCity: "Hyderabad",
+  totalBudget: 15000,
+  days: [
+    {
+      day: 1,
+      destination: "Hampi",
+      travelTime: "7 hrs by bus from Hyderabad",
+      experiences: ["Virupaksha Temple at sunrise", "Vittala Temple complex", "Hampi Bazaar walk"],
+      food: "Millet dosa at Mango Tree restaurant",
+      stay: "Guesthouse near boulders — approx ₹800/night",
+      cost: 2800
+    },
+    {
+      day: 2,
+      destination: "Hampi",
+      travelTime: "—",
+      experiences: ["Royal Enclosure", "Lotus Mahal", "Sunset at Matanga Hill"],
+      food: "Banana lassi + local thali",
+      stay: "Same guesthouse",
+      cost: 1200
+    },
+    {
+      day: 3,
+      destination: "Badami",
+      travelTime: "2 hrs from Hampi",
+      experiences: ["Badami cave temples", "Agastya Lake", "Bhutanatha temples"],
+      food: "Jowar roti at a local dhaba",
+      stay: "Budget hotel near caves — approx ₹700/night",
+      cost: 1800
+    },
+    {
+      day: 4,
+      destination: "Aihole & Pattadakal",
+      travelTime: "30 min from Badami",
+      experiences: ["Aihole temple complex — 125 temples", "Pattadakal UNESCO site", "Sunset view from hilltop"],
+      food: "Packed lunch from Badami hotel",
+      stay: "Return to Badami",
+      cost: 900
+    },
+    {
+      day: 5,
+      destination: "Return journey",
+      travelTime: "8 hrs to Hyderabad",
+      experiences: ["Morning at Badami fort", "Bus back to Hyderabad"],
+      food: "Local breakfast before departure",
+      stay: "—",
+      cost: 1500
+    }
+  ],
+  totalCost: 14200
+}
+
+chatMessages = [
+  { role: "ai", text: "Hi! Tell me what kind of trip you're planning — where from, how many days, and what you're in the mood for. I'll build you a circuit." },
+]
+
+═══════════════════════════════════════════
+AUTH CONTEXT — src/context/AuthContext.jsx
+═══════════════════════════════════════════
+
+Create a React context that:
+- Wraps the entire app
+- Listens to supabase.auth.onAuthStateChange
+- Exposes: { user, session, loading, signIn, signUp, signOut }
+- signIn: supabase.auth.signInWithPassword
+- signUp: supabase.auth.signUp  
+- signOut: supabase.auth.signOut
+
+═══════════════════════════════════════════
+ROUTING — src/App.jsx
+═══════════════════════════════════════════
+
+Use React Router v6. Routes:
+
+Public routes (no auth required):
+/ → LandingScreen
+/auth → AuthScreen
+/share/:id → ShareScreen (read-only destination view)
+
+Protected routes (redirect to /auth if not logged in):
+/home → HomeScreen
+/discover → DiscoverScreen (quiz entry)
+/quiz → QuizScreen
+/recommendations → RecommendationsScreen
+/destination/:id → DestinationDetailScreen
+/chat → ChatScreen
+/itinerary → ItineraryBuilderScreen
+/itinerary/detail → ItineraryDetailScreen
+/wishlist → WishlistScreen
+/profile → ProfileScreen
+
+Create a ProtectedRoute component that checks auth and redirects to /auth if no session.
+
+Bottom nav visible on all protected routes except /quiz and /chat (full-screen flows).
+
+═══════════════════════════════════════════
+SCREEN SPECIFICATIONS
+═══════════════════════════════════════════
+
+───────────────────────────────
+S1: LANDING SCREEN (/))
+───────────────────────────────
+Full screen, no bottom nav, no header.
+
+Layout (top to bottom):
+- Top 60% of screen: gradient background 
+  from #1A3C5E to #0D7377
+  Contains centered:
+  - App name "Trāna" in white, 42px, weight 800, letter-spacing -1px
+  - Sanskrit diacritic must render correctly
+  - Tagline below: "Know where you belong before you go."
+    White, 16px, italic, opacity 0.85, max-width 260px, centered
+  - Small decorative element: 3 small horizontal dots in gold (#C9962B)
+    spaced 8px apart, centered below tagline
+
+- Bottom 40%: white background, padding 32px 20px
+  Contains:
+  - Heading: "Travel discovery, finally done right."
+    #1A3C5E, 22px, weight 700, centered
+  - Body text below: "Tell us who you are, not just where you want to go. 
+    Trāna matches you with destinations that genuinely fit."
+    #666666, 15px, centered, line-height 1.6, margin-bottom 32px
+  - PrimaryButton: "Start discovering" → navigates to /discover
+  - SecondaryButton below: "Sign in" → navigates to /auth
+  - Small text at bottom: "No account needed to discover"
+    #999999, 12px, centered
+
+───────────────────────────────
+S2: DISCOVER SCREEN (/discover)
+───────────────────────────────
+Entry point for logged-in users who want to start a new discovery.
+
+Header: "What kind of trip?" in #1A3C5E, 22px, weight 700
+Subheading: "Choose how you want to plan" in #666666, 14px
+
+Three large option cards (full-width, 80px height each, 
+border-radius 12px, border 1.5px solid #E5E7EB, 
+white background, 16px padding):
+
+Card 1 — Solo Discovery:
+  Left: compass icon in #0D7377 (24px)
+  Center: "Discover for myself" bold + "Mood-matched destinations in 3 minutes" small gray
+  Right: chevron right icon #999999
+  Tap → /quiz
+
+Card 2 — Plan Together:
+  Left: users icon in #0D7377
+  Center: "Plan with a partner" bold + "Share preferences, get one perfect match" small gray
+  Right: "V2" badge pill in #FDF3DC with text #C9962B, 11px
+  Tap → show toast "Coming in V2 — stay tuned!" (disabled)
+
+Card 3 — Multi-Stop Itinerary:
+  Left: map icon in #0D7377
+  Center: "Build a circuit" bold + "Multi-destination trip by region or state" small gray
+  Right: chevron right
+  Tap → /itinerary
+
+Below cards, a divider line with "OR" text centered in #999999
+
+Below divider: 
+  "Continue where you left off" label in #666666 14px
+  Show last 2 saved destinations as small horizontal cards 
+  (use first 2 from mockData destinations array)
+  Each: destination name, state, small hero gradient block (40x40px)
+  Tap → /destination/:id
+
+───────────────────────────────
+S3: QUIZ SCREEN (/quiz)
+───────────────────────────────
+Full screen modal feel. No bottom nav. Back arrow top left.
+
+Header area (sticky top, white background, padding 16px 20px):
+  Row 1: Back arrow (left) + "Step X of 7" (center, #666666 14px) + Skip (right, #0D7377 14px)
+  Row 2: ProgressBar component — fill based on current step / 7
+
+Question area (padding 20px, padding-top 32px):
+  Question text: 22px, weight 700, #1A3C5E, line-height 1.3
+  Subtitle text: 14px, #666666, margin-bottom 32px
+
+Options area:
+  For single-select questions: 
+    Stack of QuizOptionButton components
+    Each: left emoji icon (24px) + label text (16px, #1A1A1A)
+    On select: green border + teal background + checkmark
+    
+  For question 5 (multiSelect: true):
+    2-column grid of smaller option buttons (height 72px)
+    Each: emoji top center + label below, centered
+    Selected: teal border + light teal background
+
+Bottom area (fixed bottom, white, padding 16px 20px, 
+border-top 1px solid #E5E7EB):
+  PrimaryButton: "Continue" 
+  Disabled state (gray, opacity 0.5) until selection made
+  On last question: button text changes to "Show my destinations"
+  On complete: navigate to /recommendations
+
+State management:
+  Store answers in React state as object: { mood, companion, duration, budget, interests[], activity, city }
+  Pass to recommendations screen via React Router state
+
+───────────────────────────────
+S4: RECOMMENDATIONS SCREEN (/recommendations)
+───────────────────────────────
+Header (sticky, white, shadow-sm):
+  Back arrow left + "Your matches" center (18px bold #1A3C5E) + 
+  filter icon right (tap shows toast "Filters coming soon")
+
+Below header, thin teal bar with white text (12px):
+  "Based on your mood · 4–5 days · ₹15,000–₹30,000 · Bengaluru"
+  (Show user's actual quiz answers here)
+
+Main content (scrollable, padding 16px):
+
+AI reasoning card (margin-bottom 16px):
+  Background #D6E8F5, border-radius 12px, padding 16px
+  Small compass icon in #0D7377 (16px) + "Why these 5?" label 
+  in #0D7377 13px font-weight 600, on same row
+  Below: italic text in #1A3C5E 14px:
+  "These destinations match your need for quiet nature, 
+  a ₹30,000 budget, and low physical activity — 
+  all within 2 hours from Bengaluru."
+
+5 DestinationCard components stacked vertically (gap 16px):
+Each card structure:
+  - Hero block: full-width, 160px height, gradient background 
+    from destination.heroGradient
+    Contains: destination name in white 24px weight 700 (bottom left)
+    state tag in white semi-transparent pill (bottom left, below name)
+    Save/bookmark icon (top right, white, 20px) — 
+    tap fills icon gold, adds to wishlist state
+    
+  - Card body (padding 16px):
+    Tags row: 3 TagPill components using destination.tags
+    
+    Rationale text: destination.rationale
+    14px, #1A1A1A, italic, line-height 1.6, margin-top 8px
+    
+    Divider line
+    
+    Budget row: "Estimated total" label left + "₹X,XXX" right bold #1A3C5E
+    
+    Season status row: 
+    Green dot + "Best time to visit" if currentSeason is "ideal"
+    
+    Bottom row: 
+    "See why this fits you →" link text in #0D7377 14px weight 600
+    Tap → /destination/:id (pass destination data via router state)
+
+After all 5 cards, a chat refinement prompt card:
+  Background white, border 1.5px dashed #0D7377, border-radius 12px, padding 16px
+  Chat bubble icon in #0D7377
+  "Not quite right?" heading 16px bold
+  "Tell me more about what you're looking for" subtext gray 14px
+  SecondaryButton: "Refine with chat" → /chat
+
+───────────────────────────────
+S5: DESTINATION DETAIL SCREEN (/destination/:id)
+───────────────────────────────
+No standard header. Full-bleed hero image at top.
+
+Hero section (full-width, 240px height):
+  Gradient background from destination.heroGradient
+  Back arrow (top left, white, inside hero, 16px padding)
+  Share icon (top right, white) — tap triggers Web Share API:
+    title: destination.name
+    text: "Check out ${name} — ${rationale_first_sentence}"
+    url: window.location.href
+  Bottom of hero: destination name white 28px weight 700
+  State tag pill (white background, #1A3C5E text)
+
+Scrollable content below hero (padding 20px):
+
+Section 1 — "Why this fits you" (margin-bottom 24px):
+  Section label: "WHY THIS FITS YOU" in #0D7377 11px weight 600 
+  letter-spacing 1px, margin-bottom 8px
+  Full rationale text in #1A1A1A 15px italic line-height 1.7
+  Background #D6F0EF, border-radius 8px, padding 12px
+
+Section 2 — Budget breakdown (margin-bottom 24px):
+  Section label: "BUDGET ESTIMATE" styling same as above
+  BudgetRow component:
+    3 items in a row (equal width):
+    ✈️ Transport: ₹X,XXX
+    🏨 Stay (X nights): ₹X,XXX  
+    🍛 Food & more: ₹X,XXX
+    Each item: icon top, label middle, amount bottom bold
+    Separated by thin vertical lines
+  Total row below: "Total estimated spend" left + "₹XX,XXX" right
+  Bold, #1A3C5E, 18px, border-top 1px solid #E5E7EB, padding-top 12px
+
+Section 3 — Best time to visit (margin-bottom 24px):
+  Section label: "BEST TIME TO VISIT"
+  Row of month pills — highlight bestMonths in teal, 
+  others in light gray
+
+Section 4 — Food highlights (margin-bottom 24px):
+  Section label: "FOOD TO TRY"
+  Horizontal scroll of food pills (TagPill style but with 🍴 icon)
+  Each: food name from destination.foodHighlights
+
+Section 5 — Videos (margin-bottom 24px):
+  Section label: "SEE IT FIRST"
+  Horizontal scroll container (overflow-x: auto)
+  3 VideoCard components side by side (gap 12px, 
+  padding-bottom 8px for scroll indicator)
+  Each VideoCard:
+    160px × 100px gradient thumbnail
+    Play button circle (white, 32px) centered on thumbnail
+    Companion type badge top-left (e.g. "Couple") in gold pill
+    Below thumbnail: title 13px weight 500 (2 line max)
+    Creator + view count in gray 12px
+    Tap: window.open YouTube search for destination name
+
+Section 6 — Action buttons (sticky bottom bar):
+  White background, border-top, padding 12px 20px
+  Two buttons side by side:
+  Left: SecondaryButton "Chat to refine" → /chat (40% width)
+  Right: PrimaryButton "Save to wishlist" → adds to wishlist, 
+    button changes to "Saved ✓" with gold background (60% width)
+
+───────────────────────────────
+S6: CHAT SCREEN (/chat)
+───────────────────────────────
+Full screen. No bottom nav.
+
+Header (sticky, white, border-bottom):
+  Back arrow left + "Refine your trip" center 18px bold + 
+  Info icon right (tap shows tooltip: "Your context is loaded")
+
+Context pill bar (below header, horizontal scroll):
+  Show user's quiz answers as small context pills:
+  "4–5 days" · "Bengaluru" · "₹30K budget" · "Nature"
+  Each: gray background, #666666 text, 12px
+
+Chat area (scrollable, padding 16px, padding-bottom 80px):
+  Render chatMessages array as ChatBubble components
+  First message always: AI bubble with greeting text from mockData
+  
+  After AI greeting, show 3 suggestion chips in a row:
+  "Show quieter options" · "Better for couples" · "Smaller budget"
+  Each: border 1px solid #0D7377, #0D7377 text, 12px, 
+  border-radius 20px, padding 6px 12px, white bg
+  Tap: adds text to input and submits
+
+  Mock AI responses — when user sends any message, 
+  after 1.5s loading (show typing indicator: 3 animated dots),
+  show this response:
+  "Based on what you've told me, let me refine these for you. 
+  Here are 3 alternatives that better match your updated 
+  preference: [Coorg · Hampi · Pondicherry] — 
+  tap any to explore in detail."
+  
+  Then show 3 small inline destination chips 
+  (destination name + state, teal pill, tappable → /destination/:id)
+
+Input area (fixed bottom, white, border-top, padding 12px 16px):
+  Row: text input (flex-1, border, border-radius 24px, padding 12px 16px,
+  placeholder "Ask anything about your trip...") + 
+  Send button (40px circle, background #1A3C5E, 
+  white arrow icon, margin-left 8px)
+  On send: add user message bubble, trigger mock AI response
+
+───────────────────────────────
+S7: ITINERARY BUILDER (/itinerary)
+───────────────────────────────
+Header: Back arrow + "Build a circuit" title
+
+Intro card (background #D6E8F5, border-radius 12px, padding 16px, margin-bottom 24px):
+  Map pin icon in #0D7377
+  Heading: "Tell me your plan" 18px bold
+  Body: "Share your starting city, how many days you have, 
+  and which region interests you — I'll build the route."
+  14px gray
+
+Chat interface (same structure as Chat screen):
+  Initial AI message: 
+  "Hi! Tell me what kind of trip you're planning — 
+  where from, how many days, and what you're in the mood for. 
+  I'll build you a circuit."
+
+  Suggestion chips: "5 days in Karnataka" · "Weekend from Mumbai" · 
+  "North India 7 days"
+
+  When user sends message (any message), after 1.5s loading:
+  Show AI response: "Perfect — here's your 5-day Karnataka 
+  circuit starting from Hyderabad, all within ₹15,000."
+  Then show PrimaryButton: "View full itinerary →" → /itinerary/detail
+
+───────────────────────────────
+S8: ITINERARY DETAIL (/itinerary/detail)
+───────────────────────────────
+Header: Back arrow + "Karnataka circuit" + share icon
+
+Trip summary bar (background #1A3C5E, padding 16px 20px):
+  White text: "5 days · Starting Hyderabad · ₹14,200 total"
+  Below: horizontal list of destination names with arrow between:
+  "Hampi → Badami → Aihole → Pattadakal"
+  White, 13px
+
+Day cards (scrollable, padding 16px, gap 16px):
+For each day in itineraryData.days:
+
+  Card (white, border-radius 12px, border 1px solid #E5E7EB, 
+  overflow hidden):
+  
+  Card header (background gradient based on day number, 
+  use amber/orange for day 1-2, purple for day 3-4, teal for day 5):
+    "Day X" left white 13px weight 600 +
+    destination.destination right white 16px weight 700
+  
+  Card body (padding 14px):
+    Travel row: 🚌 icon + travelTime text gray 13px
+    
+    Divider
+    
+    Experiences label: "WHAT TO DO" #0D7377 11px weight 600 
+    letter-spacing 1px
+    Experience items: bullet list, 14px #1A1A1A
+    
+    Food row: 🍛 icon + food text 14px gray
+    Stay row: 🏨 icon + stay text 14px gray
+    
+    Cost row: right-aligned "₹X,XXX" #1A3C5E 15px weight 600
+
+  Footer of page: 
+  Total cost summary card (background #1A3C5E, border-radius 12px, padding 16px):
+    White text: "Total estimated spend" + "₹14,200" large
+    Sub text: "5 days · Hyderabad → Karnataka → Hyderabad"
+    PrimaryButton (gold background #C9962B, white text): 
+    "Save this itinerary" → adds to wishlist toast
+
+───────────────────────────────
+S9: WISHLIST SCREEN (/wishlist)
+───────────────────────────────
+Header: "My Wishlist" 22px bold #1A3C5E
+
+If wishlist is empty:
+  Centered illustration placeholder (large bookmark icon in light gray)
+  "Nothing saved yet" heading
+  "Tap the bookmark icon on any destination to save it here"
+  body text gray
+  PrimaryButton: "Start discovering" → /discover
+
+If wishlist has items:
+  Section: "Saved destinations" (label + count badge in teal)
+  Stack of simplified destination cards:
+    Hero gradient block (80px height) + 
+    destination name + state + tags + 
+    Remove button (trash icon, right, taps removes from wishlist)
+    Tap card → /destination/:id
+
+  If itinerary saved:
+  Section: "Saved itineraries" 
+  Card with map icon + "Karnataka circuit · 5 days · ₹14,200"
+
+───────────────────────────────
+S10: PROFILE SCREEN (/profile)
+───────────────────────────────
+Header: "My Profile" 22px bold
+
+Profile section (card, padding 20px, text center):
+  Avatar circle: 64px, gradient background #1A3C5E to #0D7377,
+  white initials from user email (first letter)
+  User email below: 16px #1A1A1A
+  "Member since April 2026" in gray 13px
+
+Stats row (3 columns, border top/bottom, padding 16px 0):
+  Trips planned / Destinations saved / Days explored
+  Number: 22px bold #1A3C5E
+  Label: 12px gray
+
+Preferences section (card):
+  List items with right chevrons:
+  "My travel style" — edit quiz preferences
+  "Home city" — current selection
+  "Dietary preferences" — current selection
+  "Physical activity level" — current selection
+
+Account section (card):
+  "Notifications" with toggle switch
+  "Privacy settings" with chevron
+  "Help & feedback" with chevron
+
+Sign out button: 
+  Full width, height 52px, border 1px solid #E5E7EB, 
+  text #666666, "Sign out" 
+  Tap: calls signOut() from auth context, 
+  redirects to /
+
+───────────────────────────────
+S11: AUTH SCREEN (/auth)
+───────────────────────────────
+Full screen, no bottom nav.
+
+Top section (background gradient #1A3C5E to #0D7377, 
+height 200px, centered):
+  "Trāna" white 36px weight 800
+  "Save your discoveries. Pick up where you left off." 
+  white italic 14px opacity 0.85
+
+Bottom section (white, padding 24px 20px):
+  Tab selector: "Sign in" | "Sign up" 
+  (underline style, teal active color)
+
+  Sign In form:
+    Email input (full width, 52px height, border, 
+    border-radius 8px, padding 0 16px)
+    Password input (same, type password, eye toggle icon)
+    PrimaryButton: "Sign in"
+    On submit: call signIn() from auth context
+    On success: navigate to /home
+    Show error message below button if sign-in fails
+
+  Sign Up form (shown when Sign up tab active):
+    Email input
+    Password input  
+    Confirm password input
+    PrimaryButton: "Create account"
+    On submit: call signUp()
+    Show success message: "Check your email to confirm your account"
+
+  Below form: 
+    "Continue without account" text link → /discover
+    Gray 14px, centered, underlined
+
+═══════════════════════════════════════════
+NAVIGATION STATE
+═══════════════════════════════════════════
+
+Bottom navigation active state:
+- /home → Home tab active
+- /discover or /quiz or /recommendations → Discover tab active
+- /wishlist → Wishlist tab active
+- /profile → Profile tab active
+
+Store wishlist in React state (array of destination ids).
+On save: add to array, show toast "Saved to wishlist ✓" 
+in teal for 2 seconds at bottom of screen.
+
+Store quiz answers in React state, pass via router state 
+to recommendations screen.
+
+═══════════════════════════════════════════
+ANIMATIONS & MICRO-INTERACTIONS
+═══════════════════════════════════════════
+
+1. Quiz options: tap → 150ms border color transition + 
+   scale(0.98) then scale(1)
+2. Save/bookmark: tap → heart fills with gold + 
+   small pulse animation (scale 1.2 then 1)
+3. Screen transitions: fade in (opacity 0 → 1, 200ms)
+4. Chat typing indicator: 3 dots animated sequentially 
+   (opacity 0 → 1 → 0, staggered 200ms each)
+5. Progress bar: smooth width transition 300ms ease
+6. Toast notifications: slide up from bottom, 
+   auto-dismiss after 2 seconds
+7. Button press: scale(0.97) on active state
+
+═══════════════════════════════════════════
+IMPORTANT NOTES FOR REPLIT
+═══════════════════════════════════════════
+
+1. All Indian Rupee amounts: use ₹ symbol (not INR)
+2. The app name "Trāna" must render with the ā character correctly
+3. No real API calls — all AI responses are mock with setTimeout delays
+4. Supabase is only used for auth (sign in / sign up / sign out)
+5. All other data (destinations, wishlist, quiz state) is in React state
+6. Mobile viewport: max-width 390px, centered on desktop with 
+   light gray background (#F1F0EE) on sides
+7. Make the app feel like a real product — polish the spacing, 
+   ensure consistent typography, and make sure no screen looks empty
+8. Use Tailwind CSS utility classes throughout
+9. Every screen must handle its loading and empty states gracefully
+10. Console.log errors must be handled — no broken screens

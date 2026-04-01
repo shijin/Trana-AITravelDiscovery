@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "_dljdXMZUSGIESmCwouCy"
+uri = "file://artifacts/trana/assets/images/icon.png"
+type = "image"
+title = "trana app icon"
+
+[[generated]]
+id = "Pr47NH2oVpGtQXa4aLE2x"
+uri = "file://artifacts/trana/assets/images/coorg_hero.png"
+type = "image"
+title = "coorg hero"
+
+[[generated]]
+id = "v3x1yZsmeCgowARkVoYb9"
+uri = "file://artifacts/trana/assets/images/hampi_hero.png"
+type = "image"
+title = "hampi hero"
