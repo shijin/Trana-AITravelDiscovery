@@ -11,7 +11,7 @@ clear, personalised reasons why each one fits you.
 
 ## Live Demo
 
-[Demo Link](https://trana-ai-travel-api-server.vercel.app/)
+[Demo Link](https://trana-ai-travel-api-server.vercel.app/)  
 [Video Walkthrough](https://youtu.be/vTHCvEACVh4)
 
 ## What It Does
@@ -160,8 +160,8 @@ The full Product Requirements Document covering research context, user personas,
 
 ## Author
 
-Built by Shijin as a 0 to 1 product management assignment demonstrating end-to-end product thinking from research and PRD through design, development, and deployment.
-[LinkedIn]() | [Portfolio]()
+Built by Shijin as a 0 to 1 product management assignment demonstrating end-to-end product thinking from research and PRD through design, development, and deployment.  
+[LinkedIn](https://www.linkedin.com/in/shijinramesh/) | [Portfolio](https://www.shijinramesh.co.in/)
 
 ## License
 
