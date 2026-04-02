@@ -1,0 +1,188 @@
+Fix the Plan Circuit / Itinerary Builder so it correctly 
+matches user-entered destination names to the destination 
+data and builds an accurate itinerary.
+
+PROBLEM: When users type destination names like "Hampi" 
+and "Gokarna", the itinerary shows wrong or unrelated 
+locations because the name matching is failing.
+
+FIX 1 — Improve the destination name matching function:
+
+Replace the current key lookup with a fuzzy matching approach:
+
+function findDestinationData(name, destinationData) {
+  // Clean the input
+  const cleaned = name.toLowerCase()
+    .trim()
+    .replace(/\s+/g, '')
+  
+  // Try exact match first
+  if (destinationData[cleaned]) {
+    return destinationData[cleaned]
+  }
+  
+  // Try partial match — check if any key contains 
+  // the input or input contains the key
+  const keys = Object.keys(destinationData)
+  const partialMatch = keys.find(key => 
+    key.includes(cleaned) || cleaned.includes(key)
+  )
+  
+  if (partialMatch) {
+    return destinationData[partialMatch]
+  }
+  
+  // Return null if no match — handle separately
+  return null
+}
+
+FIX 2 — When no destination data is found, show a 
+meaningful fallback specific to that destination name 
+rather than a generic wrong location:
+
+If findDestinationData returns null, use this fallback:
+{
+  experiences: [
+    `Explore ${name} old town and local markets`,
+    `Visit the most popular viewpoint or landmark`,
+    `Sunset at the best local spot`,
+    `Morning walk through the historic area`
+  ],
+  food: `Ask locals for the best regional dish in ${name}`,
+  stay: `Mid-range hotel or guesthouse — ₹800–1500/night`,
+  travelNote: `Check bus or train connectivity from previous stop`,
+  costPerDay: 1500
+}
+
+This way even unknown destinations show the correct 
+destination NAME in the itinerary — not a wrong location.
+
+FIX 3 — Add these additional destinations to the 
+destinationData object in the buildItinerary function 
+to cover the most common Indian travel destinations 
+users might type:
+
+'spiti': {
+  experiences: ['Key Monastery', 'Chandratal Lake', 
+    'Kaza town walk', 'Pin Valley National Park'],
+  food: 'Thukpa and butter tea at local dhabas',
+  stay: 'Homestay in Kaza — ₹600–1000/night',
+  travelNote: 'Accessible June–September only, 
+    via Shimla or Manali',
+  costPerDay: 1800
+},
+'andaman': {
+  experiences: ['Radhanagar Beach', 'Cellular Jail', 
+    'Snorkeling at Elephant Beach', 
+    'Neil Island day trip'],
+  food: 'Fresh grilled lobster at beachside shacks',
+  stay: 'Beach resort — ₹2500–4000/night',
+  travelNote: 'Fly from Chennai, Kolkata or Delhi',
+  costPerDay: 3500
+},
+'jaisalmer': {
+  experiences: ['Jaisalmer Fort at sunrise', 
+    'Sam Sand Dunes camel safari',
+    'Patwon Ki Haveli', 'Desert camping overnight'],
+  food: 'Dal baati churma, ker sangri sabzi',
+  stay: 'Desert camp or fort haveli — ₹1500–3000/night',
+  travelNote: '5 hrs from Jodhpur by road',
+  costPerDay: 2500
+},
+'udaipur': {
+  experiences: ['Lake Pichola boat ride', 
+    'City Palace museum',
+    'Sunset at Ambrai Ghat', 
+    'Bagore Ki Haveli folk show'],
+  food: 'Dal baati at Santosh Restaurant, 
+    rooftop dining overlooking the lake',
+  stay: 'Lake view heritage hotel — ₹2000–5000/night',
+  travelNote: '2.5 hrs from Chittorgarh, 
+    connected by train and flight',
+  costPerDay: 2800
+},
+'ladakh': {
+  experiences: ['Pangong Lake sunrise', 
+    'Nubra Valley camel ride',
+    'Thiksey Monastery morning prayers', 
+    'Magnetic Hill', 'Zanskar River rafting'],
+  food: 'Skyu pasta, Thukpa, butter tea at local cafes',
+  stay: 'Homestay in Leh — ₹800–1500/night',
+  travelNote: 'Fly to Leh from Delhi or Srinagar. 
+    Acclimatize for 1 full day before activities.',
+  costPerDay: 2200
+},
+'darjeeling': {
+  experiences: ['Tiger Hill sunrise over Kanchenjunga',
+    'Darjeeling Himalayan Railway toy train',
+    'Tea estate walk and tasting',
+    'Batasia Loop viewpoint'],
+  food: 'Darjeeling first flush tea, 
+    momos at Glenarys bakery',
+  stay: 'Heritage hotel with mountain view — 
+    ₹1500–3000/night',
+  travelNote: '3 hrs from Siliguri NJP station 
+    by toy train or road',
+  costPerDay: 2000
+},
+'kochi': {
+  experiences: ['Fort Kochi Chinese fishing nets at dawn',
+    'Mattancherry Dutch Palace',
+    'Jewish Quarter Synagogue Lane walk',
+    'Kerala Kathakali performance evening'],
+  food: 'Karimeen pollichathu, appam and stew, 
+    seafood at Fort House restaurant',
+  stay: 'Heritage homestay in Fort Kochi — 
+    ₹1800–3500/night',
+  travelNote: 'Well connected by flight from all metros',
+  costPerDay: 2500
+},
+'hampi': {
+  experiences: ['Virupaksha Temple at sunrise', 
+    'Vittala Temple complex and stone chariot',
+    'Sunset at Matanga Hill',
+    'Royal Enclosure and Lotus Mahal', 
+    'Boulder hopping in Hippie Island'],
+  food: 'Millet dosa at Mango Tree restaurant, 
+    banana lassi at Gopi rooftop',
+  stay: 'Guesthouse near boulders — ₹700–1200/night',
+  travelNote: '3 hrs from Gokarna, 
+    7 hrs overnight bus from Hyderabad',
+  costPerDay: 1500
+},
+'gokarna': {
+  experiences: ['Kudle Beach sunrise walk', 
+    'Om Beach afternoon',
+    'Mahabaleshwar Temple visit',
+    'Half Moon Beach hike — 45 min trek',
+    'Paradise Beach for sunset'],
+  food: 'Fresh coconut fish curry at Om Beach shacks, 
+    Namaste Cafe for breakfast',
+  stay: 'Beach guesthouse or Om Beach resort — 
+    ₹600–1500/night',
+  travelNote: 'Overnight bus from Goa or Bengaluru. 
+    3 hrs from Hampi by road.',
+  costPerDay: 1200
+}
+
+FIX 4 — After building the itinerary, verify the 
+title reflects the user's actual inputs:
+
+The itinerary page title must show:
+"{destination1} + {destination2} — {totalDays} days"
+
+Example: "Hampi + Gokarna — 5 days"
+
+NOT a hardcoded title like "Karnataka Circuit".
+
+The summary bar must show:
+"Starting from {startCity} · {totalDays} days · 
+₹{totalCost} estimated"
+
+After applying all fixes, test these scenarios:
+1. Hampi + Gokarna, 5 days, Mumbai — should show 
+   correct data for both destinations
+2. Munnar + Alleppey, 4 days, Bengaluru — should work
+3. Paris + London (unknown destinations) — should show 
+   the destination name correctly with generic fallback, 
+   NOT a wrong Indian city name
