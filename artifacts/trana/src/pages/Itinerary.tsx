@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ChevronDown, Plus, X } from "lucide-react";
 import { useColors } from "@/hooks/useColors";
 import { callClaude } from "@/lib/claude";
+import { ITINERARY_SYSTEM_PROMPT, parseItinerary } from "@/lib/itinerary";
 
 const CITIES = ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Pune", "Chennai", "Kolkata", "Ahmedabad", "Kochi", "Jaipur"];
 const DAYS_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -13,55 +14,6 @@ const SUGGESTIONS = [
   "Jaisalmer", "Udaipur", "Ladakh", "Spiti", "Darjeeling",
   "Kochi", "Andaman", "Pondicherry", "Mysuru", "Ooty",
 ];
-
-const ITINERARY_SYSTEM_PROMPT = `You are Trāna's AI itinerary builder — an expert Indian travel planner who creates detailed, practical, day-by-day travel circuits for Indian travelers.
-
-CRITICAL RULES:
-1. Only plan trips within India
-2. Always respect the user's exact destinations — never substitute or replace them
-3. Always respect the exact number of days requested
-4. Distribute days logically across destinations based on how much there is to see
-5. Always respond in this exact JSON format and nothing else:
-
-{
-  "title": "Destination1 + Destination2 — X days",
-  "startCity": "city name",
-  "totalDays": number,
-  "estimatedBudget": "₹XX,XXX",
-  "days": [
-    {
-      "day": 1,
-      "destination": "Exact destination name",
-      "travelInfo": "How to get there from previous stop or start city with duration",
-      "experiences": [
-        "Specific experience 1",
-        "Specific experience 2",
-        "Specific experience 3"
-      ],
-      "food": "Specific local dish + where to eat it",
-      "stay": "Type of accommodation + price range per night",
-      "estimatedDailyCost": "₹X,XXX"
-    }
-  ],
-  "totalEstimatedCost": "₹XX,XXX",
-  "proTip": "One genuinely useful insider tip for this circuit"
-}`;
-
-function parseItinerary(response: string) {
-  try {
-    return JSON.parse(response);
-  } catch {
-    const match = response.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }
-}
 
 export default function ItineraryScreen() {
   const colors = useColors();

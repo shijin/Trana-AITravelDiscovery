@@ -193,8 +193,9 @@ Use this context to personalise every recommendation.`
 
   const handleDestTap = (dest: RecommendedDest) => {
     const mock = findMockDest(dest.name);
+    const navState = { fromChat: true, quizAnswers };
     if (mock) {
-      navigate(`/destination/${mock.id}`, { state: { dest: mock } });
+      navigate(`/destination/${mock.id}`, { state: { dest: mock, ...navState } });
     } else {
       const dynamic = {
         id: -1,
@@ -214,7 +215,7 @@ Use this context to personalise every recommendation.`
         videos: [],
         isDynamic: true,
       };
-      navigate(`/destination/-1`, { state: { dest: dynamic } });
+      navigate(`/destination/-1`, { state: { dest: dynamic, ...navState } });
     }
   };
 

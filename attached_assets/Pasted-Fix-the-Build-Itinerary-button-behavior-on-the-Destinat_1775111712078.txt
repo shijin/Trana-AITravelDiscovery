@@ -1,0 +1,310 @@
+Fix the "Build Itinerary" button behavior on the 
+Destination Detail screen when accessed from Chat.
+
+PROBLEM: When a user taps "Build Itinerary for [Destination]" 
+on the destination detail screen, it navigates to the 
+Plan Circuit input screen instead of directly building 
+and showing the itinerary.
+
+CORRECT BEHAVIOR: Tapping "Build Itinerary" should 
+immediately call Claude to build a day-wise itinerary 
+for that specific destination using all available context, 
+then navigate directly to the itinerary detail screen.
+
+═══════════════════════════════════════════
+FIX 1 — UPDATE THE BUILD ITINERARY BUTTON
+═══════════════════════════════════════════
+
+In the Destination Detail screen, find the 
+"Build Itinerary" button and replace its 
+onClick handler with this:
+
+async function handleBuildItinerary() {
+  // Show full screen loading overlay immediately
+  setIsBuilding(true)
+  
+  try {
+    // Gather all available context
+    const quizAnswers = location.state?.quizAnswers || {}
+    const destinationName = destination.name
+    const destinationState = destination.state
+    
+    // Determine days from quiz answers or default to 3
+    const daysMap: Record<string, number> = {
+      '2-3': 3,
+      '4-5': 4,
+      '6-7': 6,
+      '8+': 8
+    }
+    const totalDays = daysMap[quizAnswers.duration] || 4
+    
+    // Determine start city from quiz or default
+    const startCity = quizAnswers.city || 'your city'
+    
+    // Determine budget from quiz or destination data
+    const budget = quizAnswers.budget || 
+      `₹${destination.totalBudget?.toLocaleString('en-IN')}`
+    
+    // Determine companion from quiz
+    const companion = quizAnswers.companion || 'traveler'
+    
+    // Build the prompt with full context
+    const userPrompt = 
+`Build a ${totalDays}-day travel itinerary for 
+${destinationName}, ${destinationState}.
+
+Traveler context:
+- Traveling with: ${companion}
+- Budget: ${budget} total
+- Starting from: ${startCity}
+- Activity level: ${destination.activityLevel || 'moderate'}
+
+Please create a detailed day-by-day plan that covers 
+the best experiences in ${destinationName}. 
+Include only ${destinationName} — do not add 
+other destinations.`
+
+    // Call Claude API
+    const response = await callClaude(
+      ITINERARY_SYSTEM_PROMPT,
+      [{ role: 'user', content: userPrompt }],
+      2000
+    )
+    
+    // Parse the itinerary
+    const itinerary = parseItinerary(response)
+    
+    if (itinerary) {
+      // Navigate directly to itinerary detail
+      // with the built itinerary data
+      navigate('/itinerary/detail', {
+        state: { 
+          itinerary,
+          sourceDestination: destination
+        }
+      })
+    } else {
+      // If parsing fails, show error toast
+      showToast(
+        'Could not build itinerary. Please try again.',
+        'error'
+      )
+    }
+  } catch (error) {
+    showToast(
+      'Something went wrong. Please try again.',
+      'error'
+    )
+  } finally {
+    setIsBuilding(false)
+  }
+}
+
+═══════════════════════════════════════════
+FIX 2 — LOADING OVERLAY WHILE BUILDING
+═══════════════════════════════════════════
+
+Add a loading overlay state to the Destination 
+Detail screen.
+
+Add to component state:
+const [isBuilding, setIsBuilding] = useState(false)
+
+Render this overlay when isBuilding is true:
+
+{isBuilding && (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(26, 60, 94, 0.96)',
+    zIndex: 1000,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '40px 20px'
+  }}>
+    
+    {/* Animated compass icon */}
+    <div style={{
+      width: '64px',
+      height: '64px',
+      borderRadius: '50%',
+      background: 'rgba(255,255,255,0.1)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '24px',
+      animation: 'pulse 1.5s ease-in-out infinite'
+    }}>
+      <span style={{ fontSize: '32px' }}>🧭</span>
+    </div>
+    
+    {/* Destination name */}
+    <h2 style={{
+      color: 'white',
+      fontSize: '22px',
+      fontWeight: '700',
+      marginBottom: '8px',
+      textAlign: 'center'
+    }}>
+      Building your {destination.name} plan
+    </h2>
+    
+    {/* Subtext */}
+    <p style={{
+      color: 'rgba(255,255,255,0.7)',
+      fontSize: '14px',
+      textAlign: 'center',
+      marginBottom: '40px',
+      lineHeight: '1.6'
+    }}>
+      Finding the best experiences, local food,
+      and stays for your trip...
+    </p>
+    
+    {/* Animated dots */}
+    <div style={{
+      display: 'flex',
+      gap: '8px'
+    }}>
+      {[0, 1, 2].map(i => (
+        <div
+          key={i}
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#0D7377',
+            animation: `bounce 1.2s ease-in-out 
+              ${i * 0.2}s infinite`
+          }}
+        />
+      ))}
+    </div>
+    
+    {/* Add keyframes to document if not present */}
+    <style>{`
+      @keyframes bounce {
+        0%, 100% { transform: scale(0.6); opacity: 0.4; }
+        50% { transform: scale(1.2); opacity: 1; }
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+      }
+    `}</style>
+  </div>
+)}
+
+═══════════════════════════════════════════
+FIX 3 — UPDATE THE BUTTON LABEL AND STYLE
+═══════════════════════════════════════════
+
+Update the Build Itinerary button on the 
+destination detail screen:
+
+Old button:
+- Label: "Build Itinerary for [Destination]"
+- Action: navigate('/itinerary')
+
+New button:
+- Label: "Build my [X]-day plan →"
+  where X comes from quiz duration or defaults to 4
+- Style: full width, gold background #C9962B, 
+  white text, height 52px, border-radius 8px,
+  font-weight 600, font-size 16px
+- Action: calls handleBuildItinerary()
+- Disabled state when isBuilding is true
+
+Show this button ONLY when the destination 
+detail was accessed from the Chat screen.
+
+To detect this, check router state:
+const fromChat = location.state?.fromChat === true
+
+When navigating from chat to destination detail,
+pass this flag:
+navigate(`/destination/${id}`, {
+  state: { 
+    destination: destinationData,
+    fromChat: true,
+    quizAnswers: quizAnswers
+  }
+})
+
+If fromChat is false (user came from 
+recommendations screen), keep the existing 
+"Save to wishlist" and "Chat to refine" buttons.
+
+If fromChat is true (user came from chat), 
+show the "Build my plan" button as the 
+primary CTA instead.
+
+═══════════════════════════════════════════
+FIX 4 — PASS QUIZ CONTEXT THROUGH CHAT FLOW
+═══════════════════════════════════════════
+
+In the Chat screen, when navigating to a 
+destination detail after user taps a 
+Claude-recommended destination, pass the 
+full quiz context:
+
+// Get quiz answers from router state or context
+const quizAnswers = location.state?.quizAnswers || 
+  useQuizContext() || {}
+
+// When navigating to destination detail from chat:
+navigate(`/destination/${destinationId}`, {
+  state: {
+    destination: destinationData,
+    fromChat: true,
+    quizAnswers: quizAnswers
+  }
+})
+
+This ensures the itinerary builder knows the 
+user's duration, budget, companion type, and 
+starting city when building the plan.
+
+═══════════════════════════════════════════
+TEST SCENARIO AFTER FIX
+═══════════════════════════════════════════
+
+Test this exact flow:
+
+1. Complete the quiz:
+   - Family travel
+   - 4-5 days  
+   - Budget ₹30,000-60,000
+   - Starting from Mumbai
+
+2. Go to Chat screen
+
+3. Type: "Build an itinerary for Jaisalmer 
+   and Udaipur for my family under ₹50,000"
+
+4. Claude returns destination suggestions
+
+5. Tap "Udaipur"
+
+6. Destination detail screen loads correctly
+
+7. Tap "Build my 4-day plan →" button
+
+8. Expected: Loading overlay appears with 
+   "Building your Udaipur plan"
+
+9. Expected: After 3-5 seconds, navigates 
+   directly to Itinerary Detail screen showing 
+   a 4-day Udaipur plan with family-appropriate 
+   experiences, within ₹50,000 budget
+
+10. Expected: Itinerary title shows 
+    "Udaipur — 4 days"
+
+The user should never see the Plan Circuit 
+input screen in this flow.
