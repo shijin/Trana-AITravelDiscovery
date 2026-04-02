@@ -20,12 +20,14 @@ export default function ItineraryScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const preselected = location.state?.dest;
+  const prefilledDestination = location.state?.prefilledDestination as string | undefined;
+  const prefilledCity = location.state?.prefilledCity as string | undefined;
 
-  const [city, setCity] = useState("Bengaluru");
+  const [city, setCity] = useState(prefilledCity || "Bengaluru");
   const [days, setDays] = useState(5);
   const [budget, setBudget] = useState("₹15,000 – ₹30,000");
   const [destNames, setDestNames] = useState<string[]>(
-    preselected ? [preselected.name] : []
+    preselected ? [preselected.name] : prefilledDestination ? [prefilledDestination] : []
   );
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,7 +60,9 @@ Destinations to include (in this order): ${destNames.join(" → ")}
 
 Budget range: ${budget}
 
-Important: Include ALL the destinations I listed. Do not add or remove any destinations. Distribute the ${days} days across ${destNames.length} destination${destNames.length > 1 ? "s" : ""} logically.`;
+Important: Include ALL the destinations I listed. Do not add or remove any destinations. Distribute the ${days} days across ${destNames.length} destination${destNames.length > 1 ? "s" : ""} logically.
+
+REMINDER: Return EXACTLY ${days} days in the days array. Not ${days + 1}. Not ${days - 1}. Exactly ${days}.`;
 
     try {
       const response = await callClaude(

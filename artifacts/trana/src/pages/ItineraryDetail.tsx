@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Bookmark, MapPin, Clock, DollarSign, Utensils, Bed, Bus, Lightbulb } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, DollarSign, Utensils, Bed, Bus, Lightbulb } from "lucide-react";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 
@@ -11,6 +11,7 @@ export default function ItineraryDetailScreen() {
   const { savedItinerary, saveItinerary } = useApp();
 
   const { itinerary } = location.state || {};
+  const [showToast, setShowToast] = useState(false);
 
   if (!itinerary) {
     return (
@@ -33,8 +34,41 @@ export default function ItineraryDetailScreen() {
     if (!destChain.includes(d.destination)) destChain.push(d.destination);
   });
 
+  const handleSaveToWishlist = () => {
+    saveItinerary();
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleReadyToBook = () => {
+    navigate("/book", { state: { itinerary } });
+  };
+
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: colors.background }}>
+
+      {/* ── Toast ── */}
+      {showToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 80,
+            left: 20,
+            right: 20,
+            backgroundColor: "#1A3C5E",
+            borderRadius: 12,
+            padding: "14px 20px",
+            zIndex: 2000,
+            animation: "slideUpToast 0.25s ease-out",
+          }}
+        >
+          <style>{`@keyframes slideUpToast { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+          <p style={{ margin: "0 0 3px", color: "#fff", fontSize: 15, fontWeight: 700 }}>🔖 Trip saved to wishlist</p>
+          <p style={{ margin: 0, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Get back to it whenever you are ready.</p>
+        </div>
+      )}
+
+      {/* ── Hero header ── */}
       <div
         style={{
           background: `linear-gradient(135deg, ${colors.primary}, ${colors.tealDark})`,
@@ -52,12 +86,6 @@ export default function ItineraryDetailScreen() {
           <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: "#fff", lineHeight: "22px" }}>
             {itinerary.title}
           </span>
-          <button
-            onClick={saveItinerary}
-            style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 20, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-          >
-            <Bookmark size={18} color={savedItinerary ? colors.gold : "#fff"} fill={savedItinerary ? colors.gold : "none"} />
-          </button>
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
@@ -88,7 +116,8 @@ export default function ItineraryDetailScreen() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }} className="hide-scrollbar">
+      {/* ── Day cards ── */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px", paddingBottom: 96 }} className="hide-scrollbar">
         {itinerary.days.map((day: {
           day: number;
           destination: string;
@@ -215,16 +244,62 @@ export default function ItineraryDetailScreen() {
         </div>
       </div>
 
-      {!savedItinerary && (
-        <div style={{ padding: "12px 16px 20px", backgroundColor: colors.card, borderTop: `1px solid ${colors.border}`, flexShrink: 0 }}>
-          <button
-            onClick={saveItinerary}
-            style={{ width: "100%", height: 52, borderRadius: 8, backgroundColor: colors.primary, color: "#fff", border: "none", fontSize: 16, fontWeight: 600, cursor: "pointer" }}
-          >
-            Save to wishlist
-          </button>
-        </div>
-      )}
+      {/* ── Sticky bottom bar ── */}
+      <div
+        style={{
+          position: "sticky",
+          bottom: 0,
+          backgroundColor: colors.card,
+          borderTop: `1px solid ${colors.border}`,
+          padding: "12px 20px 24px",
+          display: "flex",
+          gap: 12,
+          zIndex: 100,
+          flexShrink: 0,
+        }}
+      >
+        <button
+          onClick={handleSaveToWishlist}
+          disabled={savedItinerary}
+          style={{
+            flex: 1,
+            height: 52,
+            backgroundColor: "#fff",
+            color: savedItinerary ? colors.mutedForeground : colors.primary,
+            border: `2px solid ${savedItinerary ? colors.border : colors.primary}`,
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: savedItinerary ? "default" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
+        >
+          {savedItinerary ? "✓ Saved" : "🔖 Save trip"}
+        </button>
+        <button
+          onClick={handleReadyToBook}
+          style={{
+            flex: 2,
+            height: 52,
+            backgroundColor: colors.primary,
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
+        >
+          Ready to book →
+        </button>
+      </div>
     </div>
   );
 }

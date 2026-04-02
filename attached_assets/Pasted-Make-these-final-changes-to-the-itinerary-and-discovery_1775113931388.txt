@@ -1,0 +1,307 @@
+Make these final changes to the itinerary and 
+discovery flows. These are the last UI/UX changes 
+before the app is complete.
+
+Do NOT change any other screens, flows, colors, 
+or functionality.
+
+═══════════════════════════════════════
+CHANGE 1 — FIX DAY COUNT IN ITINERARY PROMPT
+═══════════════════════════════════════
+
+In the ITINERARY_SYSTEM_PROMPT, replace the 
+existing day count instruction with this 
+stricter version:
+
+"CRITICAL DAY COUNT RULE:
+- The user has requested EXACTLY ${totalDays} days
+- Your itinerary JSON must contain EXACTLY 
+  ${totalDays} day objects in the days array
+- Count your days array before responding
+- If you have more or fewer, fix it before responding
+- This is non-negotiable — wrong day count = wrong answer"
+
+Also update the userPrompt in both the 
+Plan Circuit screen and the Chat screen's 
+handleBuildCombinedCircuit function:
+
+Add this line at the end of every itinerary 
+user prompt:
+
+"REMINDER: Return EXACTLY ${totalDays} days 
+in the days array. Not ${totalDays + 1}. 
+Not ${totalDays - 1}. Exactly ${totalDays}."
+
+═══════════════════════════════════════
+CHANGE 2 — REPLACE END-OF-ITINERARY CTAs
+═══════════════════════════════════════
+
+On the Itinerary Detail screen, find the 
+existing CTA buttons at the bottom 
+(whatever they currently say) and replace 
+them entirely with this:
+
+Remove any existing bottom CTA buttons.
+
+Add a sticky bottom bar with two buttons:
+
+<div style={{
+  position: 'sticky',
+  bottom: 0,
+  background: 'white',
+  borderTop: '1px solid #E5E7EB',
+  padding: '12px 20px 24px',
+  display: 'flex',
+  gap: '12px',
+  zIndex: 100
+}}>
+
+  {/* Save to Wishlist — Secondary */}
+  <button
+    onClick={handleSaveToWishlist}
+    style={{
+      flex: 1,
+      height: '52px',
+      background: 'white',
+      color: '#1A3C5E',
+      border: '2px solid #1A3C5E',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px',
+      transition: 'all 150ms ease'
+    }}
+  >
+    🔖 Save trip
+  </button>
+
+  {/* Ready to Book — Primary */}
+  <button
+    onClick={handleReadyToBook}
+    style={{
+      flex: 2,
+      height: '52px',
+      background: '#1A3C5E',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px',
+      transition: 'all 150ms ease'
+    }}
+  >
+    Ready to book →
+  </button>
+
+</div>
+
+═══════════════════════════════════════
+CHANGE 3 — SAVE TO WISHLIST BEHAVIOR
+═══════════════════════════════════════
+
+When user taps "Save trip":
+
+function handleSaveToWishlist() {
+  // Add to wishlist state
+  addToWishlist({
+    type: 'itinerary',
+    title: itinerary.title,
+    days: itinerary.totalDays,
+    cost: itinerary.totalEstimatedCost,
+    savedAt: new Date().toISOString()
+  })
+  
+  // Show toast notification — slides up from bottom
+  showToast({
+    message: 'Trip saved to wishlist',
+    subtext: 'Get back to it whenever you are ready.',
+    icon: '🔖',
+    duration: 3000,
+    style: 'success'
+  })
+}
+
+Toast component style:
+- Slides up from bottom: translateY(100%) → translateY(0)
+- Animation: 250ms ease-out
+- Auto-dismisses after 3 seconds with slide-down
+- Background: #1A3C5E
+- White text, 15px, font-weight 500
+- Border-radius: 12px
+- Padding: 14px 20px
+- Position: fixed, bottom 80px 
+  (above bottom nav), left 20px, right 20px
+- Two lines:
+  Line 1: icon + "Trip saved to wishlist" bold
+  Line 2: "Get back to it whenever you are ready." 
+  opacity 0.75, 13px
+
+═══════════════════════════════════════
+CHANGE 4 — READY TO BOOK SCREEN
+═══════════════════════════════════════
+
+Create a new screen: src/screens/ReadyToBookScreen.tsx
+
+Route: /book (add to App.tsx as protected route)
+
+Navigate to it when user taps "Ready to book →":
+navigate('/book', { 
+  state: { itinerary } 
+})
+
+SCREEN DESIGN:
+
+Header: Back arrow + "Ready to book" title
+
+Hero confirmation card 
+(background #1A3C5E, padding 20px, 
+border-radius 0 0 24px 24px, margin-bottom 24px):
+
+  Checkmark circle (40px, background rgba(255,255,255,0.15),
+  white ✓ inside, centered, margin-bottom 12px)
+  
+  Title: "Your trip is planned" 
+  white, 22px, bold, centered
+  
+  Subtitle: itinerary.title
+  white, 16px, centered, opacity 0.85
+  
+  Pill row (centered, gap 12px, margin-top 12px):
+    "📅 {itinerary.totalDays} days" 
+    "💰 {itinerary.totalEstimatedCost}"
+  Each pill: white background opacity 0.15, 
+  white text, 13px, border-radius 20px, 
+  padding 4px 12px
+
+Booking partners section (padding 0 20px):
+
+  Section label: 
+  "BOOK WITH YOUR PREFERRED PLATFORM"
+  #0D7377, 11px, weight 600, letter-spacing 1px
+  margin-bottom 4px
+  
+  Subtext: 
+  "Trāna helps you discover. 
+  These platforms help you book."
+  #666666, 13px, margin-bottom 16px
+
+  Three booking partner cards 
+  (full width, height 72px, white, 
+  border-radius 12px, border 1px solid #E5E7EB,
+  margin-bottom 12px, padding 0 16px,
+  display flex, align-items center):
+
+  Card 1 — Flights + Hotels:
+    Left: colored square logo placeholder 
+    (40px, border-radius 8px, 
+    background: linear-gradient 
+    from #E8240B to #FF6B35,
+    white text "MMT" 12px bold)
+    Center: "MakeMyTrip" bold 15px + 
+    "Flights, hotels & packages" gray 13px
+    Right: "Search →" in #0D7377, 13px, weight 600
+    Tap: window.open('https://makemytrip.com')
+
+  Card 2 — Hotels:
+    Left: logo placeholder 
+    (background: #003580, white text "Bkg" 11px bold)
+    Center: "Booking.com" bold 15px + 
+    "Hotels & stays" gray 13px
+    Right: "Search →" in #0D7377, 13px
+    Tap: window.open('https://booking.com')
+
+  Card 3 — Unique stays:
+    Left: logo placeholder 
+    (background: #FF5A5F, white text "Bnb" 11px bold)
+    Center: "Airbnb" bold 15px + 
+    "Unique stays & experiences" gray 13px
+    Right: "Search →" in #0D7377, 13px
+    Tap: window.open('https://airbnb.com')
+
+Pro tip card (margin 20px 20px 0,
+background #FDF3DC, border-left 4px solid #C9962B,
+border-radius 0 8px 8px 0, padding 14px 16px):
+
+  "💡 Pro tip" #C9962B, 13px, weight 600, 
+  margin-bottom 4px
+  
+  "Search for {first destination in itinerary} 
+  to {last destination} on MakeMyTrip for the 
+  best flight + hotel bundle deals."
+  #666666, 13px, line-height 1.6
+
+Start over button 
+(margin 20px 20px 32px, full width,
+height 52px, border 1px solid #E5E7EB,
+background white, color #666666,
+border-radius 8px, font-size 14px):
+  "Plan another trip"
+  Tap: navigate('/discover')
+
+═══════════════════════════════════════
+CHANGE 5 — APPLY SAME CTAs TO 
+SINGLE DESTINATION DETAIL
+═══════════════════════════════════════
+
+On the Destination Detail screen 
+(accessed from Recommendations, not from Chat),
+replace existing bottom CTA buttons with 
+the same two-button pattern:
+
+Button 1: "🔖 Save destination" 
+(secondary, same style as above)
+Tap: save destination to wishlist + 
+show same toast notification
+
+Button 2: "Plan this trip →" 
+(primary, navy background)
+Tap: navigate('/itinerary', {
+  state: { 
+    prefilledDestination: destination.name,
+    prefilledCity: quizAnswers?.city 
+  }
+})
+This takes user to Plan Circuit with the 
+destination pre-filled — they just add 
+more destinations or hit build directly.
+
+═══════════════════════════════════════
+TEST SCENARIOS
+═══════════════════════════════════════
+
+Test 1 — Day count:
+Ask for 5-day Jaisalmer plan
+Expected: Exactly 5 day cards in itinerary
+
+Test 2 — Save to wishlist:
+Complete any itinerary → tap "Save trip"
+Expected: Toast slides up "Trip saved to wishlist"
+with subtext, auto-dismisses after 3 seconds
+
+Test 3 — Ready to book flow:
+Complete any itinerary → tap "Ready to book →"
+Expected: /book screen loads with trip summary,
+3 booking partner cards, pro tip card
+
+Test 4 — Booking partner tap:
+Tap MakeMyTrip card
+Expected: Opens makemytrip.com in new tab
+
+Test 5 — Start over:
+On /book screen, tap "Plan another trip"
+Expected: Returns to /discover screen
+
+Test 6 — Single destination CTA:
+From recommendations → tap destination → 
+tap "Plan this trip →"
+Expected: Goes to Plan Circuit with 
+destination name pre-filled

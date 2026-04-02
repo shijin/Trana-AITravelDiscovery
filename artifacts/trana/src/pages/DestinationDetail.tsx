@@ -51,6 +51,7 @@ export default function DestinationDetailScreen() {
 
   const [isBuilding, setIsBuilding] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "budget" | "videos">("overview");
+  const [showToast, setShowToast] = useState(false);
 
   if (!dest) {
     return (
@@ -110,7 +111,9 @@ Traveler context:
 - Starting from: ${startCity}
 - Activity level: ${dest!.activityLevel || "moderate"}
 
-Create a detailed day-by-day plan covering the best experiences in ${dest!.name}. Include only ${dest!.name} — do not add other destinations. Make it specific, practical, and memorable.`;
+Create a detailed day-by-day plan covering the best experiences in ${dest!.name}. Include only ${dest!.name} — do not add other destinations. Make it specific, practical, and memorable.
+
+REMINDER: Return EXACTLY ${totalDays} days in the days array. Not ${totalDays + 1}. Not ${totalDays - 1}. Exactly ${totalDays}.`;
 
     try {
       const response = await callClaude(
@@ -141,6 +144,12 @@ Create a detailed day-by-day plan covering the best experiences in ${dest!.name}
     if (dest.isDynamic) return;
     if (saved) removeFromWishlist(dest.id);
     else addToWishlist(dest);
+  };
+
+  const handleSaveDestination = () => {
+    if (!dest.isDynamic && !saved) addToWishlist(dest);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   const budgetTotal =
@@ -302,8 +311,29 @@ Create a detailed day-by-day plan covering the best experiences in ${dest!.name}
         ))}
       </div>
 
+      {/* ── Toast ── */}
+      {showToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 80,
+            left: 20,
+            right: 20,
+            backgroundColor: "#1A3C5E",
+            borderRadius: 12,
+            padding: "14px 20px",
+            zIndex: 2000,
+            animation: "slideUpToast 0.25s ease-out",
+          }}
+        >
+          <style>{`@keyframes slideUpToast { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+          <p style={{ margin: "0 0 3px", color: "#fff", fontSize: 15, fontWeight: 700 }}>🔖 Destination saved</p>
+          <p style={{ margin: 0, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Get back to it whenever you are ready.</p>
+        </div>
+      )}
+
       {/* ── Tab content ── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: 20 }} className="hide-scrollbar">
+      <div style={{ flex: 1, overflowY: "auto", padding: 20, paddingBottom: !fromChat ? 88 : 20 }} className="hide-scrollbar">
 
         {activeTab === "overview" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -364,21 +394,13 @@ Create a detailed day-by-day plan covering the best experiences in ${dest!.name}
               </div>
             )}
 
-            {fromChat ? (
+            {fromChat && (
               <button
                 onClick={handleBuildItinerary}
                 disabled={isBuilding}
                 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 52, borderRadius: 8, border: "none", backgroundColor: "#C9962B", color: "#fff", fontSize: 16, fontWeight: 600, cursor: isBuilding ? "not-allowed" : "pointer", opacity: isBuilding ? 0.7 : 1, width: "100%" }}
               >
                 Build my {totalDays}-day plan →
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate("/chat")}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, height: 52, borderRadius: 8, border: `1.5px solid ${colors.tealDark}`, backgroundColor: "transparent", color: colors.tealDark, fontSize: 15, fontWeight: 600, cursor: "pointer" }}
-              >
-                <MessageCircle size={18} color={colors.tealDark} />
-                Ask about {dest.name}
               </button>
             )}
           </div>
@@ -418,20 +440,13 @@ Create a detailed day-by-day plan covering the best experiences in ${dest!.name}
             <p style={{ margin: 0, fontSize: 12, lineHeight: "18px", color: colors.mutedForeground, fontStyle: "italic" }}>
               Estimated per couple per trip. Actual costs may vary.
             </p>
-            {fromChat ? (
+            {fromChat && (
               <button
                 onClick={handleBuildItinerary}
                 disabled={isBuilding}
-                style={{ height: 52, borderRadius: 8, backgroundColor: "#C9962B", color: "#fff", border: "none", fontSize: 16, fontWeight: 600, cursor: isBuilding ? "not-allowed" : "pointer", opacity: isBuilding ? 0.7 : 1, marginTop: 8 }}
+                style={{ height: 52, borderRadius: 8, backgroundColor: "#C9962B", color: "#fff", border: "none", fontSize: 16, fontWeight: 600, cursor: isBuilding ? "not-allowed" : "pointer", opacity: isBuilding ? 0.7 : 1, marginTop: 8, width: "100%" }}
               >
                 Build my {totalDays}-day plan →
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate("/itinerary", { state: { dest } })}
-                style={{ height: 52, borderRadius: 8, backgroundColor: colors.primary, color: "#fff", border: "none", fontSize: 16, fontWeight: 600, cursor: "pointer", marginTop: 8 }}
-              >
-                Build itinerary for {dest.name}
               </button>
             )}
           </div>
@@ -462,6 +477,38 @@ Create a detailed day-by-day plan covering the best experiences in ${dest!.name}
           </div>
         )}
       </div>
+
+      {/* ── Sticky bottom bar (non-chat only) ── */}
+      {!fromChat && (
+        <div
+          style={{
+            position: "sticky",
+            bottom: 0,
+            backgroundColor: colors.card,
+            borderTop: `1px solid ${colors.border}`,
+            padding: "12px 20px 24px",
+            display: "flex",
+            gap: 12,
+            zIndex: 100,
+            flexShrink: 0,
+          }}
+        >
+          {!dest.isDynamic && (
+            <button
+              onClick={handleSaveDestination}
+              style={{ flex: 1, height: 52, backgroundColor: "#fff", color: colors.primary, border: `2px solid ${colors.primary}`, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+            >
+              🔖 Save destination
+            </button>
+          )}
+          <button
+            onClick={() => navigate("/itinerary", { state: { prefilledDestination: dest.name, prefilledCity: quizAnswers?.city } })}
+            style={{ flex: 2, height: 52, backgroundColor: colors.primary, color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+          >
+            Plan this trip →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

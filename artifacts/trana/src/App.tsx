@@ -12,6 +12,7 @@ import DestinationDetail from "./pages/DestinationDetail";
 import Chat from "./pages/Chat";
 import Itinerary from "./pages/Itinerary";
 import ItineraryDetail from "./pages/ItineraryDetail";
+import ReadyToBook from "./pages/ReadyToBook";
 import Auth from "./pages/Auth";
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/chat" element={<Chat />} />
             <Route path="/itinerary" element={<Itinerary />} />
             <Route path="/itinerary-detail" element={<ItineraryDetail />} />
+            <Route path="/book" element={<ReadyToBook />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

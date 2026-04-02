@@ -330,7 +330,9 @@ IMPORTANT:
 - Include ALL destinations listed above — do not skip or merge any
 - Give exactly the number of days specified for each destination
 - Total days must equal exactly ${totalDays}
-- Plan realistic travel between destinations`;
+- Plan realistic travel between destinations
+
+REMINDER: Return EXACTLY ${totalDays} days in the days array. Not ${totalDays + 1}. Not ${totalDays - 1}. Exactly ${totalDays}.`;
 
     try {
       const response = await callClaude(
