@@ -65,8 +65,8 @@ When you are ready to commit, the app surfaces links to MakeMyTrip, Booking.com,
 
 Clone the repository
 ```bash
-git clone https://github.com/yourusername/trana-mvp.git
-cd trana-mvp
+git clone https://github.com/yourusername/Trana-AITravel.git
+cd Trana-AITravel
 ```
 
 Install dependencies
