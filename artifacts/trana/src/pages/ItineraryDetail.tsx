@@ -58,17 +58,20 @@ export default function ItineraryDetailScreen() {
         <div
           style={{
             position: "fixed",
-            bottom: 80,
-            left: 20,
-            right: 20,
+            bottom: 88,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "calc(100% - 40px)",
+            maxWidth: 350,
             backgroundColor: "#1A3C5E",
             borderRadius: 12,
             padding: "14px 20px",
-            zIndex: 2000,
+            zIndex: 9999,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
             animation: "slideUpToast 0.25s ease-out",
           }}
         >
-          <style>{`@keyframes slideUpToast { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+          <style>{`@keyframes slideUpToast { from { transform: translateX(-50%) translateY(20px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }`}</style>
           <p style={{ margin: "0 0 3px", color: "#fff", fontSize: 15, fontWeight: 600 }}>Saved to wishlist</p>
           <p style={{ margin: 0, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Come back when you feel ready.</p>
         </div>
