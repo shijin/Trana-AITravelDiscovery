@@ -1,0 +1,480 @@
+Fix the chat flow to correctly handle multi-destination 
+trip requests and build combined itineraries.
+
+PROBLEM: When Claude returns multiple destination 
+suggestions for a combined trip request like 
+"Plan Jaisalmer and Udaipur for 6 days", tapping 
+one destination builds a single-destination itinerary 
+and loses the other destination entirely.
+
+CORRECT BEHAVIOR:
+- Single destination mentioned → show destination 
+  cards → tap → detail view → build single itinerary
+- Multiple destinations mentioned → detect this → 
+  skip individual destination cards → directly show 
+  a "Build Combined Circuit" card → tap → build 
+  combined itinerary for ALL destinations together
+
+═══════════════════════════════════════════
+FIX 1 — DETECT MULTI-DESTINATION INTENT
+═══════════════════════════════════════════
+
+Update the CHAT_SYSTEM_PROMPT to instruct Claude 
+to signal whether the user wants a combined trip 
+or individual destination exploration.
+
+Replace the existing CHAT_SYSTEM_PROMPT with:
+
+const CHAT_SYSTEM_PROMPT = `You are Trāna's AI travel 
+discovery assistant — a warm, knowledgeable Indian 
+travel expert.
+
+CRITICAL RULES:
+1. Always recommend real Indian destinations only
+2. Keep response text concise — maximum 3 sentences
+3. Detect whether the user wants:
+   A) A SINGLE destination recommendation 
+      (exploring options, not sure where to go)
+   B) A MULTI-DESTINATION trip 
+      (user has explicitly mentioned 2+ places 
+      OR asked to combine destinations)
+
+4. Always respond with this JSON at the end:
+
+For SINGLE destination intent:
+RESPONSE: {
+  "intent": "single",
+  "text": "Your conversational response here",
+  "destinations": [
+    {"name": "...", "state": "...", 
+     "reason": "..."},
+    {"name": "...", "state": "...", 
+     "reason": "..."},
+    {"name": "...", "state": "...", 
+     "reason": "..."}
+  ]
+}
+
+For MULTI-DESTINATION intent:
+RESPONSE: {
+  "intent": "multi",
+  "text": "Your conversational response here",
+  "tripTitle": "Jaisalmer + Udaipur",
+  "totalDays": 6,
+  "destinations": [
+    {"name": "Jaisalmer", "state": "Rajasthan",
+     "suggestedDays": 3,
+     "reason": "Desert forts and dunes"},
+    {"name": "Udaipur", "state": "Rajasthan", 
+     "suggestedDays": 3,
+     "reason": "Lake city romance"}
+  ]
+}
+
+5. Use "multi" intent when:
+   - User mentions 2 or more place names together
+   - User says "and" between destinations
+   - User says "combine", "circuit", "both places"
+   - User asks to plan a trip covering multiple cities
+
+6. Use "single" intent when:
+   - User asks for recommendations without 
+     specifying destinations
+   - User mentions only one destination
+   - User asks "where should I go"
+
+7. For multi intent, distribute days logically:
+   - More days to destinations with more to see
+   - Always sum to the total days requested
+   - If no days mentioned, suggest optimal days`
+
+═══════════════════════════════════════════
+FIX 2 — UPDATE RESPONSE PARSER
+═══════════════════════════════════════════
+
+Update the parseClaudeResponse function to 
+handle both intent types:
+
+function parseClaudeResponse(response: string) {
+  // Extract the RESPONSE JSON block
+  const responseMatch = response.match(
+    /RESPONSE:\s*(\{[\s\S]*?\})\s*$/
+  )
+  
+  if (!responseMatch) {
+    // Fallback for old format
+    return {
+      intent: 'single',
+      text: response,
+      destinations: []
+    }
+  }
+  
+  try {
+    const parsed = JSON.parse(responseMatch[1])
+    return parsed
+  } catch {
+    return {
+      intent: 'single', 
+      text: response
+        .replace(/RESPONSE:\s*\{[\s\S]*\}/, '')
+        .trim(),
+      destinations: []
+    }
+  }
+}
+
+═══════════════════════════════════════════
+FIX 3 — RENDER DIFFERENT UI FOR EACH INTENT
+═══════════════════════════════════════════
+
+In the Chat screen, after receiving Claude's 
+response, render based on intent:
+
+const { intent, text, destinations, 
+        tripTitle, totalDays } = parsedResponse
+
+IF intent === 'single':
+  Show existing behavior — text bubble + 
+  individual destination cards that each 
+  navigate to destination detail on tap.
+
+IF intent === 'multi':
+  Show text bubble first.
+  
+  Then show a COMBINED TRIP CARD instead of 
+  individual destination cards:
+
+  {intent === 'multi' && (
+    <div style={{
+      background: 'white',
+      borderRadius: '16px',
+      border: '2px solid #0D7377',
+      overflow: 'hidden',
+      marginTop: '12px'
+    }}>
+      
+      {/* Trip header */}
+      <div style={{
+        background: '#1A3C5E',
+        padding: '16px',
+      }}>
+        <p style={{
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: '11px',
+          fontWeight: '600',
+          letterSpacing: '1px',
+          margin: '0 0 4px 0'
+        }}>
+          COMBINED CIRCUIT
+        </p>
+        <h3 style={{
+          color: 'white',
+          fontSize: '18px',
+          fontWeight: '700',
+          margin: '0 0 4px 0'
+        }}>
+          {tripTitle}
+        </h3>
+        <p style={{
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: '13px',
+          margin: 0
+        }}>
+          {totalDays} days · 
+          {destinations.length} destinations
+        </p>
+      </div>
+      
+      {/* Destination breakdown */}
+      <div style={{ padding: '12px 16px' }}>
+        {destinations.map((dest, index) => (
+          <div key={index} style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '10px 0',
+            borderBottom: index < destinations.length - 1 
+              ? '1px solid #F0F0F0' : 'none'
+          }}>
+            {/* Day count bubble */}
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: '#D6F0EF',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: '12px',
+              flexShrink: 0
+            }}>
+              <span style={{
+                color: '#0D7377',
+                fontSize: '14px',
+                fontWeight: '700',
+                lineHeight: 1
+              }}>
+                {dest.suggestedDays}
+              </span>
+              <span style={{
+                color: '#0D7377',
+                fontSize: '9px',
+                lineHeight: 1
+              }}>
+                days
+              </span>
+            </div>
+            
+            {/* Destination info */}
+            <div style={{ flex: 1 }}>
+              <p style={{
+                color: '#1A1A1A',
+                fontSize: '15px',
+                fontWeight: '600',
+                margin: '0 0 2px 0'
+              }}>
+                {dest.name}
+              </p>
+              <p style={{
+                color: '#666666',
+                fontSize: '12px',
+                margin: '0 0 2px 0'
+              }}>
+                {dest.state}
+              </p>
+              <p style={{
+                color: '#666666',
+                fontSize: '12px',
+                fontStyle: 'italic',
+                margin: 0
+              }}>
+                {dest.reason}
+              </p>
+            </div>
+            
+            {/* Arrow connector except last */}
+            {index < destinations.length - 1 && (
+              <div style={{
+                position: 'absolute',
+                right: '16px',
+                color: '#0D7377',
+                fontSize: '16px'
+              }}>
+                ↓
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      
+      {/* Build Circuit CTA */}
+      <div style={{ padding: '12px 16px 16px' }}>
+        <button
+          onClick={() => handleBuildCombinedCircuit(
+            destinations, 
+            totalDays,
+            tripTitle
+          )}
+          style={{
+            width: '100%',
+            height: '52px',
+            background: '#C9962B',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          Build this {totalDays}-day circuit →
+        </button>
+      </div>
+    </div>
+  )}
+
+═══════════════════════════════════════════
+FIX 4 — BUILD COMBINED CIRCUIT HANDLER
+═══════════════════════════════════════════
+
+Add this function to the Chat screen:
+
+async function handleBuildCombinedCircuit(
+  destinations: Array<{
+    name: string, 
+    state: string, 
+    suggestedDays: number,
+    reason: string
+  }>,
+  totalDays: number,
+  tripTitle: string
+) {
+  setIsBuilding(true)
+  
+  try {
+    const quizAnswers = location.state?.quizAnswers || {}
+    const startCity = quizAnswers.city || 'your city'
+    const budget = quizAnswers.budget || '₹30,000–₹60,000'
+    const companion = quizAnswers.companion || 'traveler'
+    
+    const destinationList = destinations
+      .map(d => `${d.name} (${d.suggestedDays} days)`)
+      .join(', ')
+    
+    const userPrompt = 
+`Build a ${totalDays}-day travel circuit covering 
+these destinations in order:
+${destinationList}
+
+Traveler context:
+- Traveling with: ${companion}
+- Budget: ${budget} total for the trip
+- Starting from: ${startCity}
+
+IMPORTANT: 
+- Include ALL destinations listed
+- Give exactly the number of days specified 
+  for each destination
+- Total days must equal ${totalDays}
+- Plan travel between destinations logically`
+
+    const response = await callClaude(
+      ITINERARY_SYSTEM_PROMPT,
+      [{ role: 'user', content: userPrompt }],
+      2500
+    )
+    
+    const itinerary = parseItinerary(response)
+    
+    if (itinerary) {
+      navigate('/itinerary/detail', {
+        state: { 
+          itinerary,
+          tripTitle 
+        }
+      })
+    } else {
+      showToast(
+        'Could not build the circuit. Please try again.',
+        'error'
+      )
+    }
+  } catch (error) {
+    showToast(
+      'Something went wrong. Please try again.',
+      'error'
+    )
+  } finally {
+    setIsBuilding(false)
+  }
+}
+
+═══════════════════════════════════════════
+FIX 5 — LOADING STATE FOR COMBINED BUILD
+═══════════════════════════════════════════
+
+Add isBuilding state to the Chat screen.
+When isBuilding is true, show the same loading 
+overlay used in the Destination Detail screen:
+
+{isBuilding && (
+  <div style={{
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(26, 60, 94, 0.96)',
+    zIndex: 1000,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '40px 20px'
+  }}>
+    <span style={{ 
+      fontSize: '40px', 
+      marginBottom: '24px' 
+    }}>
+      🗺️
+    </span>
+    <h2 style={{
+      color: 'white',
+      fontSize: '22px',
+      fontWeight: '700',
+      marginBottom: '8px',
+      textAlign: 'center'
+    }}>
+      Building your circuit
+    </h2>
+    <p style={{
+      color: 'rgba(255,255,255,0.7)',
+      fontSize: '14px',
+      textAlign: 'center',
+      marginBottom: '32px',
+      lineHeight: 1.6
+    }}>
+      Planning the perfect route across
+      all your destinations...
+    </p>
+    <div style={{ display: 'flex', gap: '8px' }}>
+      {[0,1,2].map(i => (
+        <div key={i} style={{
+          width: '8px', height: '8px',
+          borderRadius: '50%',
+          background: '#0D7377',
+          animation: `bounce 1.2s ease-in-out 
+            ${i * 0.2}s infinite`
+        }}/>
+      ))}
+    </div>
+    <style>{`
+      @keyframes bounce {
+        0%, 100% { 
+          transform: scale(0.6); 
+          opacity: 0.4; 
+        }
+        50% { 
+          transform: scale(1.2); 
+          opacity: 1; 
+        }
+      }
+    `}</style>
+  </div>
+)}
+
+═══════════════════════════════════════════
+TEST SCENARIOS AFTER FIX
+═══════════════════════════════════════════
+
+Test 1 — Single destination:
+Type: "Where should I go in Kerala for 4 days?"
+Expected: 3 individual destination cards 
+(Munnar, Alleppey, Varkala)
+Each card tappable → destination detail
+
+Test 2 — Multi destination:
+Type: "Plan a trip for Jaisalmer and Udaipur 
+for 6 days under ₹50,000"
+Expected: ONE combined circuit card showing:
+- "Jaisalmer + Udaipur" as title
+- Jaisalmer: 3 days bubble
+- Udaipur: 3 days bubble  
+- "Build this 6-day circuit →" gold button
+Tap button → loading overlay → 
+itinerary detail with BOTH cities
+
+Test 3 — Three destinations:
+Type: "Plan Hampi, Gokarna and Coorg for 7 days"
+Expected: Combined circuit card with all 3 
+destinations and logical day distribution
+Tap → itinerary covering all 3
+
+Test 4 — Verify single destination 
+detail still works:
+Type: "Tell me about Udaipur"
+Expected: Single Udaipur card → 
+tap → destination detail → 
+"Build my 4-day plan" button works
