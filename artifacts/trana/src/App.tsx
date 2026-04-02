@@ -18,7 +18,21 @@ export default function App() {
   return (
     <AppProvider>
       <BrowserRouter>
-        <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#F8F9FA" }}>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 430,
+            height: "100vh",
+            maxHeight: 932,
+            display: "flex",
+            flexDirection: "column",
+            background: "#F8F9FA",
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: 40,
+            boxShadow: "0 32px 80px rgba(0,0,0,0.6), 0 0 0 10px #2a2a3e, 0 0 0 12px #111",
+          }}
+        >
           <Routes>
             <Route element={<TabLayout />}>
               <Route path="/" element={<Home />} />
