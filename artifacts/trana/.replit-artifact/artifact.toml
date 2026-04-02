@@ -1,27 +1,28 @@
 kind = "mobile"
-previewPath = "/"
-title = "Trāna"
-version = "1.0.0"
-id = "artifacts/trana"
-router = "expo-domain"
+  previewPath = "/"
+  title = "Trāna"
+  version = "1.0.0"
+  id = "artifacts/trana"
+  router = "expo-domain"
 
-[[integratedSkills]]
-name = "expo"
-version = "1.0.0"
+  [[integratedSkills]]
+  name = "expo"
+  version = "1.0.0"
 
-[[services]]
-ensurePreviewReachable = "/status"
-name = "expo"
-paths = [ "/" ]
-localPort = 23653
+  [[services]]
+  ensurePreviewReachable = "/"
+  name = "expo"
+  paths = [ "/" ]
+  localPort = 23653
 
-[services.development]
-run = "pnpm --filter @workspace/trana run dev"
+  [services.development]
+  run = "pnpm --filter @workspace/trana run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/trana", "run", "build" ]
-run = [ "pnpm", "--filter", "@workspace/trana", "run", "serve" ]
+  [services.production]
+  build = [ "pnpm", "--filter", "@workspace/trana", "run", "build" ]
+  run = [ "pnpm", "--filter", "@workspace/trana", "run", "serve" ]
 
-[services.env]
-PORT = "23653"
-BASE_PATH = "/"
+  [services.env]
+  PORT = "23653"
+  BASE_PATH = "/"
+  

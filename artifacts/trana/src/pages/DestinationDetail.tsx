@@ -1,0 +1,424 @@
+import React, { useState } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  Bookmark,
+  Star,
+  Calendar,
+  DollarSign,
+  Activity,
+  Utensils,
+  MapPin,
+  Play,
+  Heart,
+  MessageCircle,
+} from "lucide-react";
+import { useColors } from "@/hooks/useColors";
+import { useApp } from "@/context/AppContext";
+import { destinations, type Destination } from "@/data/mockData";
+
+export default function DestinationDetailScreen() {
+  const colors = useColors();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const { addToWishlist, removeFromWishlist, isWishlisted } = useApp();
+
+  const dest: Destination =
+    location.state?.dest ||
+    destinations.find((d) => d.id === parseInt(id || "0")) ||
+    destinations[0];
+
+  const saved = isWishlisted(dest.id);
+  const [activeTab, setActiveTab] = useState<"overview" | "budget" | "videos">("overview");
+
+  const handleSave = () => {
+    if (saved) {
+      removeFromWishlist(dest.id);
+    } else {
+      addToWishlist(dest);
+    }
+  };
+
+  const budgetTotal =
+    dest.budgetBreakdown.transport + dest.budgetBreakdown.stay + dest.budgetBreakdown.food;
+
+  return (
+    <div
+      style={{
+        backgroundColor: colors.background,
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div
+        style={{
+          height: 260,
+          background: `linear-gradient(160deg, ${dest.heroGradient[0]}, ${dest.heroGradient[1]})`,
+          position: "relative",
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          padding: 20,
+        }}
+      >
+        <div style={{ position: "absolute", top: 20, left: 16, right: 16, display: "flex", justifyContent: "space-between" }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              background: "rgba(0,0,0,0.25)",
+              border: "none",
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <ArrowLeft size={20} color="#fff" />
+          </button>
+          <button
+            onClick={handleSave}
+            style={{
+              background: "rgba(0,0,0,0.25)",
+              border: "none",
+              borderRadius: 20,
+              width: 40,
+              height: 40,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <Bookmark
+              size={20}
+              color={saved ? colors.gold : "#fff"}
+              fill={saved ? colors.gold : "none"}
+            />
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+          {dest.tags.map((tag) => (
+            <span
+              key={tag}
+              style={{
+                backgroundColor: "rgba(255,255,255,0.25)",
+                borderRadius: 20,
+                paddingLeft: 12,
+                paddingRight: 12,
+                paddingTop: 4,
+                paddingBottom: 4,
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#fff",
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        <h1 style={{ margin: "0 0 4px", color: "#fff", fontSize: 32, fontWeight: 800 }}>
+          {dest.name}
+        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <MapPin size={14} color="rgba(255,255,255,0.8)" />
+          <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 14 }}>
+            {dest.state}, {dest.region}
+          </span>
+          {dest.currentSeason === "ideal" && (
+            <span
+              style={{
+                backgroundColor: colors.gold,
+                borderRadius: 20,
+                paddingLeft: 10,
+                paddingRight: 10,
+                paddingTop: 3,
+                paddingBottom: 3,
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#fff",
+                marginLeft: 4,
+              }}
+            >
+              Best time now
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", borderBottom: `1px solid ${colors.border}`, backgroundColor: colors.card, flexShrink: 0 }}>
+        {(["overview", "budget", "videos"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              flex: 1,
+              paddingTop: 14,
+              paddingBottom: 14,
+              background: "none",
+              border: "none",
+              borderBottom: activeTab === tab ? `2px solid ${colors.tealDark}` : "2px solid transparent",
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: activeTab === tab ? 600 : 400,
+              color: activeTab === tab ? colors.tealDark : colors.mutedForeground,
+              textTransform: "capitalize",
+            }}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: 20 }} className="hide-scrollbar">
+        {activeTab === "overview" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div>
+              <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: colors.primary }}>
+                Why this fits you
+              </h3>
+              <p style={{ margin: 0, fontSize: 15, lineHeight: "24px", color: colors.foreground, fontStyle: "italic" }}>
+                {dest.rationale}
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              {[
+                { icon: Activity, label: "Activity", val: dest.activityLevel },
+                { icon: Calendar, label: "Season", val: dest.currentSeason },
+              ].map(({ icon: Icon, label, val }) => (
+                <div
+                  key={label}
+                  style={{
+                    flex: 1,
+                    borderRadius: 10,
+                    padding: 14,
+                    backgroundColor: colors.muted,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Icon size={18} color={colors.tealDark} />
+                  <span style={{ fontSize: 12, color: colors.mutedForeground }}>{label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: colors.foreground, textTransform: "capitalize" }}>{val}</span>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <h3 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 700, color: colors.primary }}>
+                Best months to visit
+              </h3>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {dest.bestMonths.map((month) => (
+                  <span
+                    key={month}
+                    style={{
+                      backgroundColor: colors.tealLight,
+                      borderRadius: 20,
+                      paddingLeft: 14,
+                      paddingRight: 14,
+                      paddingTop: 6,
+                      paddingBottom: 6,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: colors.tealDark,
+                    }}
+                  >
+                    {month}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 700, color: colors.primary }}>
+                Must-try food
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {dest.foodHighlights.map((food) => (
+                  <div key={food} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Utensils size={16} color={colors.gold} />
+                    <span style={{ fontSize: 15, color: colors.foreground }}>{food}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {dest.medicalFacilities && (
+              <div
+                style={{
+                  borderRadius: 10,
+                  padding: 14,
+                  backgroundColor: colors.blueLight,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <Heart size={16} color={colors.primary} />
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: colors.primary, display: "block" }}>
+                    Medical facilities nearby
+                  </span>
+                  <span style={{ fontSize: 13, color: colors.foreground }}>{dest.medicalFacilities}</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => navigate("/chat")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                height: 52,
+                borderRadius: 8,
+                border: `1.5px solid ${colors.tealDark}`,
+                backgroundColor: "transparent",
+                color: colors.tealDark,
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <MessageCircle size={18} color={colors.tealDark} />
+              Ask about {dest.name}
+            </button>
+          </div>
+        )}
+
+        {activeTab === "budget" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: colors.primary }}>
+              Estimated cost breakdown
+            </h3>
+            {[
+              { label: "Transport", amount: dest.budgetBreakdown.transport, key: "transport" },
+              { label: "Stay", amount: dest.budgetBreakdown.stay, key: "stay" },
+              { label: "Food", amount: dest.budgetBreakdown.food, key: "food" },
+            ].map(({ label, amount, key }) => {
+              const pct = Math.round((amount / budgetTotal) * 100);
+              return (
+                <div key={key}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 15, color: colors.foreground }}>{label}</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: colors.primary }}>
+                      ₹{amount.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 4, backgroundColor: colors.muted, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%",
+                        backgroundColor: colors.tealDark,
+                        borderRadius: 4,
+                        width: `${pct}%`,
+                        transition: "width 0.6s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            <div
+              style={{
+                height: 1,
+                backgroundColor: colors.border,
+              }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 16, fontWeight: 600, color: colors.foreground }}>Total (estimated)</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: colors.primary }}>
+                ₹{dest.totalBudget.toLocaleString("en-IN")}
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: 12, lineHeight: "18px", color: colors.mutedForeground, fontStyle: "italic" }}>
+              These are estimated costs for a couple per trip. Actual costs may vary based on season and booking.
+            </p>
+            <button
+              onClick={() => navigate("/itinerary", { state: { dest } })}
+              style={{
+                height: 52,
+                borderRadius: 8,
+                backgroundColor: colors.primary,
+                color: "#fff",
+                border: "none",
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: "pointer",
+                marginTop: 8,
+              }}
+            >
+              Build itinerary for {dest.name}
+            </button>
+          </div>
+        )}
+
+        {activeTab === "videos" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p style={{ margin: 0, fontSize: 14, color: colors.mutedForeground }}>
+              Real travel experiences from the community
+            </p>
+            {dest.videos.map((video) => (
+              <div
+                key={video.id}
+                style={{
+                  borderRadius: 12,
+                  border: `1px solid ${colors.border}`,
+                  overflow: "hidden",
+                  backgroundColor: colors.card,
+                }}
+              >
+                <div
+                  style={{
+                    height: 120,
+                    background: `linear-gradient(135deg, ${dest.heroGradient[0]}, ${dest.heroGradient[1]})`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: "rgba(255,255,255,0.2)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Play size={20} color="#fff" fill="#fff" />
+                  </div>
+                </div>
+                <div style={{ padding: 12 }}>
+                  <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 600, color: colors.foreground }}>
+                    {video.title}
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, color: colors.mutedForeground }}>{video.creator}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <Star size={13} color={colors.gold} fill={colors.gold} />
+                      <span style={{ fontSize: 12, color: colors.mutedForeground }}>{video.views} views</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
