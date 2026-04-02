@@ -31,7 +31,7 @@ export default function HomeScreen() {
 
   return (
     <div
-      style={{ backgroundColor: colors.background, minHeight: "100%" }}
+      style={{ backgroundColor: colors.background, height: "100vh", overflowY: "auto" }}
       className="hide-scrollbar"
     >
       <div
