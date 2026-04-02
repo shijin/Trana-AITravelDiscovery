@@ -154,29 +154,67 @@ Use this context to personalise every recommendation.`
     }
   };
 
+  const GRADIENTS: [string, string][] = [
+    ["#0f766e", "#16a34a"],
+    ["#1d4ed8", "#0891b2"],
+    ["#6d28d9", "#4f46e5"],
+    ["#0f766e", "#15803d"],
+    ["#b45309", "#d97706"],
+    ["#be185d", "#e11d48"],
+    ["#374151", "#6b7280"],
+    ["#7c3aed", "#a855f7"],
+  ];
+
+  function getGradient(name: string): [string, string] {
+    return GRADIENTS[name.length % GRADIENTS.length];
+  }
+
+  function getTagsFromReason(reason: string): string[] {
+    const tagMap: Record<string, string[]> = {
+      beach: ["Beach", "Coastal", "Scenic"],
+      mountain: ["Mountains", "Trekking", "Adventure"],
+      heritage: ["Heritage", "History", "Culture"],
+      nature: ["Nature", "Wildlife", "Outdoors"],
+      spiritual: ["Spiritual", "Temple", "Peaceful"],
+      food: ["Food", "Culinary", "Local Culture"],
+      waterfall: ["Nature", "Scenic", "Offbeat"],
+      forest: ["Nature", "Offbeat", "Adventure"],
+      lake: ["Scenic", "Nature", "Peaceful"],
+      temple: ["Spiritual", "Heritage", "Culture"],
+      hill: ["Hill Station", "Cool Climate", "Nature"],
+      trek: ["Trekking", "Adventure", "Outdoors"],
+    };
+    const lower = reason.toLowerCase();
+    for (const [kw, tags] of Object.entries(tagMap)) {
+      if (lower.includes(kw)) return tags;
+    }
+    return ["Offbeat", "Explore", "Discover"];
+  }
+
   const handleDestTap = (dest: RecommendedDest) => {
     const mock = findMockDest(dest.name);
     if (mock) {
       navigate(`/destination/${mock.id}`, { state: { dest: mock } });
     } else {
-      navigate(`/destination/0`, {
-        state: {
-          dest: {
-            id: 0,
-            name: dest.name,
-            state: dest.state,
-            tagline: dest.reason,
-            heroGradient: ["#0D7377", "#14A085"],
-            tags: [],
-            highlights: [],
-            vibes: [],
-            budgetPerDay: 0,
-            travelTime: "",
-            season: "",
-            description: dest.reason,
-          },
-        },
-      });
+      const dynamic = {
+        id: -1,
+        name: dest.name,
+        state: dest.state,
+        region: dest.state,
+        heroGradient: getGradient(dest.name),
+        tags: getTagsFromReason(dest.reason),
+        rationale: dest.reason,
+        budgetBreakdown: { transport: 5000, stay: 8000, food: 3000 },
+        totalBudget: 16000,
+        bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+        currentSeason: "ideal",
+        activityLevel: "moderate",
+        companionTypes: ["solo", "couple", "family"],
+        foodHighlights: [`Local ${dest.state} cuisine`, "Regional specialties", "Street food"],
+        videos: [],
+        isDynamic: true,
+      };
+      navigate(`/destination/-1`, { state: { dest: dynamic } });
     }
   };
 

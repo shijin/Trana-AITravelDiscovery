@@ -24,6 +24,7 @@ export interface Destination {
   foodHighlights: string[];
   videos: Video[];
   medicalFacilities?: string;
+  isDynamic?: boolean;
 }
 
 export interface QuizOption {
@@ -455,6 +456,66 @@ export const destinations: Destination[] = [
     foodHighlights: ["Dal bafla", "Bhutte ki kees", "Shikanjvi"],
     videos: [
       { id: 22, title: "Khajuraho — understanding the temples", creator: "Heritage India", views: "198K", companionType: "couple", thumbnail: "from-stone-800 to-amber-700" },
+    ],
+  },
+  {
+    id: 21,
+    name: "Shillong",
+    state: "Meghalaya",
+    region: "Northeast India",
+    heroGradient: ["#1d4ed8", "#4338ca"],
+    tags: ["Hill Station", "Music City", "Northeast"],
+    rationale:
+      "The Scotland of the East — colonial architecture, an incredible live music scene, and a cool climate year-round. One of India's most underrated cities.",
+    budgetBreakdown: { transport: 7000, stay: 6000, food: 2500 },
+    totalBudget: 15500,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["solo", "couple", "friends"],
+    foodHighlights: ["Jadoh rice and meat", "Dohneiiong pork curry", "Pumaloi steamed rice cake", "Kwai betel nut"],
+    videos: [
+      { id: 23, title: "Shillong — India's rock music capital", creator: "Northeast Explorer", views: "312K", companionType: "solo", thumbnail: "from-blue-800 to-indigo-600" },
+    ],
+  },
+  {
+    id: 22,
+    name: "Cherrapunji",
+    state: "Meghalaya",
+    region: "Northeast India",
+    heroGradient: ["#166534", "#0d9488"],
+    tags: ["Living Root Bridges", "Waterfalls", "Nature"],
+    rationale:
+      "Home to the famous double-decker living root bridges and some of the most dramatic waterfall landscapes in Asia. Genuinely otherworldly.",
+    budgetBreakdown: { transport: 8000, stay: 5000, food: 2000 },
+    totalBudget: 15000,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "high",
+    companionTypes: ["solo", "couple", "friends"],
+    foodHighlights: ["Jadoh", "Nakham bitchi fish curry", "Local wildflower honey"],
+    videos: [
+      { id: 24, title: "Cherrapunji — living root bridges & waterfalls", creator: "Northeast Expeditions", views: "478K", companionType: "solo", thumbnail: "from-green-800 to-teal-600" },
+    ],
+  },
+  {
+    id: 23,
+    name: "Dawki",
+    state: "Meghalaya",
+    region: "Northeast India",
+    heroGradient: ["#0891b2", "#3b82f6"],
+    tags: ["Crystal Clear River", "Offbeat", "Nature"],
+    rationale:
+      "The Umngot River at Dawki is so transparent you can see the riverbed from a boat — one of India's most photographed natural wonders and completely worth the journey.",
+    budgetBreakdown: { transport: 8500, stay: 4000, food: 2000 },
+    totalBudget: 14500,
+    bestMonths: ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"],
+    currentSeason: "ideal",
+    activityLevel: "low",
+    companionTypes: ["solo", "couple", "friends"],
+    foodHighlights: ["Jadoh rice and pork", "Tungrymbai fermented soybean", "Smoked river fish"],
+    videos: [
+      { id: 25, title: "Dawki — India's most transparent river", creator: "Northeast Roads", views: "634K", companionType: "couple", thumbnail: "from-cyan-800 to-blue-600" },
     ],
   },
 ];

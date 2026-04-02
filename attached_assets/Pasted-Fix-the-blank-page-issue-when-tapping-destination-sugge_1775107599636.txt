@@ -1,0 +1,313 @@
+Fix the blank page issue when tapping destination 
+suggestions returned by the Claude chat response.
+
+PROBLEM: When Claude recommends a destination in chat 
+that does not exist in the mockData destinations array, 
+tapping it navigates to a blank destination detail page 
+because no data is found.
+
+FIX 1 — Update the destination tap handler in the 
+chat screen.
+
+When a user taps a destination card returned by Claude,
+use this logic instead of directly navigating:
+
+function handleDestinationTap(destination: {
+  name: string, 
+  state: string, 
+  reason: string
+}) {
+  // First try to find in mockData by name match
+  const existingDestination = destinations.find(d => 
+    d.name.toLowerCase() === destination.name.toLowerCase() ||
+    d.name.toLowerCase().includes(
+      destination.name.toLowerCase()
+    ) ||
+    destination.name.toLowerCase().includes(
+      d.name.toLowerCase()
+    )
+  )
+  
+  if (existingDestination) {
+    // Navigate to existing destination detail
+    navigate(`/destination/${existingDestination.id}`, {
+      state: { destination: existingDestination }
+    })
+  } else {
+    // Build a dynamic destination object from 
+    // Claude's response data
+    const dynamicDestination = {
+      id: destination.name.toLowerCase()
+        .replace(/\s+/g, '-'),
+      name: destination.name,
+      state: destination.state,
+      region: destination.state,
+      heroGradient: getGradientForDestination(
+        destination.name
+      ),
+      tags: getTagsFromReason(destination.reason),
+      rationale: destination.reason,
+      budgetBreakdown: { 
+        transport: 5000, 
+        stay: 8000, 
+        food: 3000 
+      },
+      totalBudget: 16000,
+      bestMonths: ["Oct","Nov","Dec","Jan","Feb","Mar"],
+      currentSeason: "ideal",
+      activityLevel: "moderate",
+      companionTypes: ["solo","couple","family"],
+      foodHighlights: [
+        `Local ${destination.state} cuisine`,
+        "Regional specialties",
+        "Street food"
+      ],
+      videos: [],
+      isDynamic: true
+    }
+    
+    navigate(
+      `/destination/${dynamicDestination.id}`, 
+      { state: { destination: dynamicDestination } }
+    )
+  }
+}
+
+// Helper function to assign gradient based on 
+// destination name
+function getGradientForDestination(name: string): string {
+  const gradients = [
+    "from-green-700 to-emerald-500",
+    "from-blue-700 to-cyan-500",
+    "from-purple-700 to-indigo-500",
+    "from-teal-700 to-green-500",
+    "from-orange-700 to-amber-500",
+    "from-rose-700 to-pink-500",
+    "from-slate-700 to-gray-500",
+    "from-violet-700 to-purple-500"
+  ]
+  // Deterministic selection based on name length
+  const index = name.length % gradients.length
+  return gradients[index]
+}
+
+// Helper to extract tags from reason text
+function getTagsFromReason(reason: string): string[] {
+  const tagMap: Record<string, string[]> = {
+    'beach': ['Beach', 'Coastal', 'Scenic'],
+    'mountain': ['Mountains', 'Trekking', 'Adventure'],
+    'heritage': ['Heritage', 'History', 'Culture'],
+    'nature': ['Nature', 'Wildlife', 'Outdoors'],
+    'spiritual': ['Spiritual', 'Temple', 'Peaceful'],
+    'food': ['Food', 'Culinary', 'Local Culture'],
+    'waterfall': ['Nature', 'Scenic', 'Offbeat'],
+    'forest': ['Nature', 'Offbeat', 'Adventure'],
+    'lake': ['Scenic', 'Nature', 'Peaceful'],
+    'temple': ['Spiritual', 'Heritage', 'Culture']
+  }
+  
+  const reasonLower = reason.toLowerCase()
+  for (const [keyword, tags] of Object.entries(tagMap)) {
+    if (reasonLower.includes(keyword)) return tags
+  }
+  return ['Offbeat', 'Explore', 'Discover']
+}
+
+FIX 2 — Update the Destination Detail screen to 
+read from router state.
+
+At the top of the DestinationDetailScreen component,
+update the data source logic:
+
+const { id } = useParams()
+const location = useLocation()
+
+// First priority: data passed via router state
+const stateDestination = location.state?.destination
+
+// Second priority: find in mockData by id
+const mockDestination = destinations.find(d => 
+  d.id === parseInt(id || '0') || 
+  d.id === id ||
+  d.name.toLowerCase().replace(/\s+/g, '-') === id
+)
+
+// Use whichever is available
+const destination = stateDestination || mockDestination
+
+// If neither found, show a friendly error
+if (!destination) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      padding: '20px',
+      textAlign: 'center'
+    }}>
+      <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+        🧭
+      </div>
+      <h2 style={{ 
+        color: '#1A3C5E', 
+        fontSize: '20px', 
+        fontWeight: '700',
+        marginBottom: '8px'
+      }}>
+        Destination not found
+      </h2>
+      <p style={{ 
+        color: '#666666', 
+        fontSize: '14px',
+        marginBottom: '24px'
+      }}>
+        We don't have details for this destination yet.
+        More destinations coming soon.
+      </p>
+      <button
+        onClick={() => navigate(-1)}
+        style={{
+          background: '#1A3C5E',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          padding: '12px 24px',
+          fontSize: '16px',
+          fontWeight: '600',
+          cursor: 'pointer'
+        }}
+      >
+        Go back
+      </button>
+    </div>
+  )
+}
+
+FIX 3 — Handle dynamic destinations in the 
+detail view.
+
+When rendering a dynamic destination 
+(isDynamic === true), show an additional banner 
+at the top of the detail screen below the hero:
+
+{destination.isDynamic && (
+  <div style={{
+    background: '#FDF3DC',
+    borderLeft: '4px solid #C9962B',
+    padding: '12px 16px',
+    margin: '0 0 16px 0',
+    borderRadius: '0 8px 8px 0'
+  }}>
+    <p style={{ 
+      color: '#C9962B', 
+      fontSize: '13px',
+      fontWeight: '600',
+      margin: '0 0 4px 0'
+    }}>
+      AI-discovered destination
+    </p>
+    <p style={{ 
+      color: '#666666', 
+      fontSize: '12px',
+      margin: 0
+    }}>
+      Detailed information for this destination 
+      will be available soon. Budget estimates 
+      are approximate.
+    </p>
+  </div>
+)}
+
+Also for dynamic destinations, hide the videos 
+section if videos array is empty:
+
+{destination.videos && 
+ destination.videos.length > 0 && (
+  <VideoSection videos={destination.videos} />
+)}
+
+FIX 4 — For Meghalaya specifically, add it to 
+the mockData destinations if not already present 
+with full data:
+
+{
+  id: 5,
+  name: "Meghalaya",
+  state: "Meghalaya", 
+  region: "Northeast India",
+  heroGradient: "from-teal-700 to-green-600",
+  tags: ["Nature", "Living Root Bridges", "Offbeat"],
+  rationale: "The wettest place on earth with living root bridges, sacred forests, and landscapes that feel genuinely otherworldly. One of India's most underrated states.",
+  budgetBreakdown: { 
+    transport: 8500, 
+    stay: 7000, 
+    food: 2500 
+  },
+  totalBudget: 18000,
+  bestMonths: [
+    "Oct","Nov","Dec","Jan","Feb","Mar"
+  ],
+  currentSeason: "ideal",
+  activityLevel: "moderate",
+  companionTypes: ["solo","couple","friends"],
+  foodHighlights: [
+    "Jadoh rice and meat",
+    "Dohneiiong pork curry", 
+    "Tungrymbai fermented soybean",
+    "Pumaloi steamed rice cake"
+  ],
+  videos: [
+    { 
+      id: 7, 
+      title: "Meghalaya — 5 days in the clouds", 
+      creator: "Northeast Explorer", 
+      views: "521K", 
+      companionType: "solo", 
+      thumbnail: "from-teal-800 to-emerald-700" 
+    }
+  ]
+}
+
+Also add these Northeast and popular destinations 
+that Claude commonly recommends but may be missing:
+
+Shillong, Cherrapunji, Dawki — add as separate 
+destination entries with this data pattern:
+
+Shillong:
+- heroGradient: "from-blue-700 to-indigo-600"
+- tags: ["Hill Station", "Music City", "Northeast"]
+- rationale: "The Scotland of the East — colonial architecture, incredible music scene, and a cool climate year-round."
+- budget: transport 7000, stay 6000, food 2500 = 15500
+- activityLevel: low
+- foodHighlights: ["Jadoh", "Dohneiiong", "Pumaloi", "Kwai betel nut"]
+
+Cherrapunji:
+- heroGradient: "from-green-800 to-teal-600"  
+- tags: ["Living Root Bridges", "Waterfalls", "Nature"]
+- rationale: "Home to the famous double-decker living root bridges and some of the most dramatic waterfall landscapes in Asia."
+- budget: transport 8000, stay 5000, food 2000 = 15000
+- activityLevel: high
+- foodHighlights: ["Jadoh", "Nakham bitchi", "Local honey"]
+
+Dawki:
+- heroGradient: "from-cyan-600 to-blue-500"
+- tags: ["Crystal Clear River", "Offbeat", "Nature"]  
+- rationale: "The Umngot River at Dawki is so clear you can see the riverbed from a boat — one of India's most photographed natural wonders."
+- budget: transport 8500, stay 4000, food 2000 = 14500
+- activityLevel: low
+- foodHighlights: ["Jadoh", "Tungrymbai", "Smoked meat"]
+
+After all fixes, test this exact scenario:
+1. Go to Chat screen
+2. Type: "Show me a 5 day itinerary for Meghalaya"
+3. Claude returns 3 destinations including 
+   Shillong, Cherrapunji, Dawki
+4. Tap any destination card
+5. Expected: Destination detail screen loads 
+   with correct data — NOT a blank page
+6. If destination is dynamic (not in mockData), 
+   expected: Detail screen loads with AI-discovered 
+   banner and approximate data — NOT a blank page

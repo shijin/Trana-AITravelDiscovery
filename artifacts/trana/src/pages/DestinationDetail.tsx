@@ -12,6 +12,7 @@ import {
   Play,
   Heart,
   MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
@@ -24,15 +25,67 @@ export default function DestinationDetailScreen() {
   const { id } = useParams();
   const { addToWishlist, removeFromWishlist, isWishlisted } = useApp();
 
-  const dest: Destination =
-    location.state?.dest ||
-    destinations.find((d) => d.id === parseInt(id || "0")) ||
-    destinations[0];
+  // State passed via router takes priority over URL param lookup
+  const stateDest: Destination | undefined =
+    location.state?.dest || location.state?.destination;
+
+  const paramDest: Destination | undefined = destinations.find(
+    (d) =>
+      d.id === parseInt(id || "0") ||
+      d.name.toLowerCase().replace(/\s+/g, "-") === id
+  );
+
+  const dest = stateDest || paramDest;
+
+  if (!dest) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          padding: 32,
+          textAlign: "center",
+          backgroundColor: colors.background,
+        }}
+      >
+        <span style={{ fontSize: 48, marginBottom: 16 }}>🧭</span>
+        <h2 style={{ color: colors.primary, fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>
+          Destination not found
+        </h2>
+        <p style={{ color: colors.mutedForeground, fontSize: 14, margin: "0 0 24px", lineHeight: "20px" }}>
+          We don't have details for this destination yet. More destinations are coming soon.
+        </p>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            backgroundColor: colors.primary,
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "12px 24px",
+            fontSize: 16,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Go back
+        </button>
+      </div>
+    );
+  }
 
   const saved = isWishlisted(dest.id);
+  const hasVideos = dest.videos && dest.videos.length > 0;
+  const tabs = hasVideos
+    ? (["overview", "budget", "videos"] as const)
+    : (["overview", "budget"] as const);
   const [activeTab, setActiveTab] = useState<"overview" | "budget" | "videos">("overview");
 
   const handleSave = () => {
+    if (dest.isDynamic) return;
     if (saved) {
       removeFromWishlist(dest.id);
     } else {
@@ -52,6 +105,7 @@ export default function DestinationDetailScreen() {
         flexDirection: "column",
       }}
     >
+      {/* Hero */}
       <div
         style={{
           height: 260,
@@ -81,26 +135,28 @@ export default function DestinationDetailScreen() {
           >
             <ArrowLeft size={20} color="#fff" />
           </button>
-          <button
-            onClick={handleSave}
-            style={{
-              background: "rgba(0,0,0,0.25)",
-              border: "none",
-              borderRadius: 20,
-              width: 40,
-              height: 40,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <Bookmark
-              size={20}
-              color={saved ? colors.gold : "#fff"}
-              fill={saved ? colors.gold : "none"}
-            />
-          </button>
+          {!dest.isDynamic && (
+            <button
+              onClick={handleSave}
+              style={{
+                background: "rgba(0,0,0,0.25)",
+                border: "none",
+                borderRadius: 20,
+                width: 40,
+                height: 40,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <Bookmark
+                size={20}
+                color={saved ? colors.gold : "#fff"}
+                fill={saved ? colors.gold : "none"}
+              />
+            </button>
+          )}
         </div>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
@@ -129,9 +185,9 @@ export default function DestinationDetailScreen() {
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <MapPin size={14} color="rgba(255,255,255,0.8)" />
           <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 14 }}>
-            {dest.state}, {dest.region}
+            {dest.state}{dest.region && dest.region !== dest.state ? `, ${dest.region}` : ""}
           </span>
-          {dest.currentSeason === "ideal" && (
+          {dest.currentSeason === "ideal" && !dest.isDynamic && (
             <span
               style={{
                 backgroundColor: colors.gold,
@@ -152,8 +208,34 @@ export default function DestinationDetailScreen() {
         </div>
       </div>
 
+      {/* AI-discovered banner */}
+      {dest.isDynamic && (
+        <div
+          style={{
+            backgroundColor: "#FDF3DC",
+            borderLeft: "4px solid #C9962B",
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            flexShrink: 0,
+          }}
+        >
+          <Sparkles size={16} color="#C9962B" style={{ marginTop: 1, flexShrink: 0 }} />
+          <div>
+            <p style={{ margin: "0 0 3px", color: "#C9962B", fontSize: 13, fontWeight: 700 }}>
+              AI-discovered destination
+            </p>
+            <p style={{ margin: 0, color: "#7A5A1A", fontSize: 12, lineHeight: "17px" }}>
+              Detailed curated information is coming soon. Budget estimates are approximate.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
       <div style={{ display: "flex", borderBottom: `1px solid ${colors.border}`, backgroundColor: colors.card, flexShrink: 0 }}>
-        {(["overview", "budget", "videos"] as const).map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -181,7 +263,7 @@ export default function DestinationDetailScreen() {
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
               <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: colors.primary }}>
-                Why this fits you
+                {dest.isDynamic ? "About this destination" : "Why this fits you"}
               </h3>
               <p style={{ margin: 0, fontSize: 15, lineHeight: "24px", color: colors.foreground, fontStyle: "italic" }}>
                 {dest.rationale}
@@ -213,31 +295,33 @@ export default function DestinationDetailScreen() {
               ))}
             </div>
 
-            <div>
-              <h3 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 700, color: colors.primary }}>
-                Best months to visit
-              </h3>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {dest.bestMonths.map((month) => (
-                  <span
-                    key={month}
-                    style={{
-                      backgroundColor: colors.tealLight,
-                      borderRadius: 20,
-                      paddingLeft: 14,
-                      paddingRight: 14,
-                      paddingTop: 6,
-                      paddingBottom: 6,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: colors.tealDark,
-                    }}
-                  >
-                    {month}
-                  </span>
-                ))}
+            {dest.bestMonths && dest.bestMonths.length > 0 && (
+              <div>
+                <h3 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 700, color: colors.primary }}>
+                  Best months to visit
+                </h3>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {dest.bestMonths.map((month) => (
+                    <span
+                      key={month}
+                      style={{
+                        backgroundColor: colors.tealLight,
+                        borderRadius: 20,
+                        paddingLeft: 14,
+                        paddingRight: 14,
+                        paddingTop: 6,
+                        paddingBottom: 6,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: colors.tealDark,
+                      }}
+                    >
+                      {month}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <h3 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 700, color: colors.primary }}>
@@ -302,6 +386,11 @@ export default function DestinationDetailScreen() {
             <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: colors.primary }}>
               Estimated cost breakdown
             </h3>
+            {dest.isDynamic && (
+              <p style={{ margin: 0, fontSize: 13, color: colors.mutedForeground, fontStyle: "italic", lineHeight: "18px" }}>
+                These are rough AI estimates. Actual costs depend on group size, season, and booking.
+              </p>
+            )}
             {[
               { label: "Transport", amount: dest.budgetBreakdown.transport, key: "transport" },
               { label: "Stay", amount: dest.budgetBreakdown.stay, key: "stay" },
@@ -330,12 +419,7 @@ export default function DestinationDetailScreen() {
                 </div>
               );
             })}
-            <div
-              style={{
-                height: 1,
-                backgroundColor: colors.border,
-              }}
-            />
+            <div style={{ height: 1, backgroundColor: colors.border }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 16, fontWeight: 600, color: colors.foreground }}>Total (estimated)</span>
               <span style={{ fontSize: 22, fontWeight: 800, color: colors.primary }}>
@@ -343,7 +427,7 @@ export default function DestinationDetailScreen() {
               </span>
             </div>
             <p style={{ margin: 0, fontSize: 12, lineHeight: "18px", color: colors.mutedForeground, fontStyle: "italic" }}>
-              These are estimated costs for a couple per trip. Actual costs may vary based on season and booking.
+              Estimated costs per couple per trip. Actual costs may vary.
             </p>
             <button
               onClick={() => navigate("/itinerary", { state: { dest } })}
@@ -364,7 +448,7 @@ export default function DestinationDetailScreen() {
           </div>
         )}
 
-        {activeTab === "videos" && (
+        {activeTab === "videos" && hasVideos && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <p style={{ margin: 0, fontSize: 14, color: colors.mutedForeground }}>
               Real travel experiences from the community
