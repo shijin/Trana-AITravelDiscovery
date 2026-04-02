@@ -12,6 +12,7 @@ export default function ItineraryDetailScreen() {
 
   const { itinerary } = location.state || {};
   const [showToast, setShowToast] = useState(false);
+  const [pressing, setPressing] = useState(false);
 
   if (!itinerary) {
     return (
@@ -36,8 +37,13 @@ export default function ItineraryDetailScreen() {
 
   const handleSaveToWishlist = () => {
     saveItinerary();
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    setPressing(true);
+    setTimeout(() => setPressing(false), 150);
+    setShowToast(false);
+    setTimeout(() => {
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }, 10);
   };
 
   const handleReadyToBook = () => {
@@ -63,8 +69,8 @@ export default function ItineraryDetailScreen() {
           }}
         >
           <style>{`@keyframes slideUpToast { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
-          <p style={{ margin: "0 0 3px", color: "#fff", fontSize: 15, fontWeight: 700 }}>🔖 Trip saved to wishlist</p>
-          <p style={{ margin: 0, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Get back to it whenever you are ready.</p>
+          <p style={{ margin: "0 0 3px", color: "#fff", fontSize: 15, fontWeight: 600 }}>Saved to wishlist</p>
+          <p style={{ margin: 0, color: "rgba(255,255,255,0.75)", fontSize: 13 }}>Come back when you feel ready.</p>
         </div>
       )}
 
@@ -260,24 +266,25 @@ export default function ItineraryDetailScreen() {
       >
         <button
           onClick={handleSaveToWishlist}
-          disabled={savedItinerary}
           style={{
             flex: 1,
             height: 52,
             backgroundColor: "#fff",
-            color: savedItinerary ? colors.mutedForeground : colors.primary,
-            border: `2px solid ${savedItinerary ? colors.border : colors.primary}`,
+            color: colors.primary,
+            border: `2px solid ${colors.primary}`,
             borderRadius: 8,
             fontSize: 14,
             fontWeight: 600,
-            cursor: savedItinerary ? "default" : "pointer",
+            cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 6,
+            transform: pressing ? "scale(0.96)" : "scale(1)",
+            transition: "transform 150ms ease",
           }}
         >
-          {savedItinerary ? "✓ Saved" : "🔖 Save trip"}
+          🔖 Save trip
         </button>
         <button
           onClick={handleReadyToBook}

@@ -52,6 +52,7 @@ export default function DestinationDetailScreen() {
   const [isBuilding, setIsBuilding] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "budget" | "videos">("overview");
   const [showToast, setShowToast] = useState(false);
+  const [pressing, setPressing] = useState(false);
 
   if (!dest) {
     return (
@@ -148,8 +149,13 @@ REMINDER: Return EXACTLY ${totalDays} days in the days array. Not ${totalDays + 
 
   const handleSaveDestination = () => {
     if (!dest.isDynamic && !saved) addToWishlist(dest);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    setPressing(true);
+    setTimeout(() => setPressing(false), 150);
+    setShowToast(false);
+    setTimeout(() => {
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }, 10);
   };
 
   const budgetTotal =
@@ -496,7 +502,7 @@ REMINDER: Return EXACTLY ${totalDays} days in the days array. Not ${totalDays + 
           {!dest.isDynamic && (
             <button
               onClick={handleSaveDestination}
-              style={{ flex: 1, height: 52, backgroundColor: "#fff", color: colors.primary, border: `2px solid ${colors.primary}`, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              style={{ flex: 1, height: 52, backgroundColor: "#fff", color: colors.primary, border: `2px solid ${colors.primary}`, borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transform: pressing ? "scale(0.96)" : "scale(1)", transition: "transform 150ms ease" }}
             >
               🔖 Save destination
             </button>
