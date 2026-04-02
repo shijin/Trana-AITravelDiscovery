@@ -11,41 +11,30 @@ clear, personalised reasons why each one fits you.
 
 ## Live Demo
 
-[Add your Vercel URL here]
+[Demo Link](https://trana-ai-travel-api-server.vercel.app/)
+[Video Walkthrough](https://youtu.be/vTHCvEACVh4)
 
 ## What It Does
 
 **Mood and Context Quiz**
-A 7-question guided flow that takes under 3 minutes. 
-Captures mood, companions, budget, duration, interests, 
-activity level, and home city. No search box. No filters.
+A 7-question guided flow that takes under 3 minutes. Captures mood, companions, budget, duration, interests, activity level, and home city. No search box. No filters.
 
 **AI Recommendations**
-Powered by the Anthropic Claude API. Returns 3 to 5 
-destinations with a personalised reason for each one. 
-Every recommendation explains why it fits your specific 
+Powered by the Anthropic Claude API. Returns 3 to 5 destinations with a personalised reason for each one. Every recommendation explains why it fits your specific 
 context, not just what the destination is known for.
 
 **Chat Refinement**
-Tell the AI what you actually want in plain language. 
-Say I want to travel to Kerala or show me something 
-quieter and it understands. Detects single destination 
-vs multi-destination intent automatically.
+Tell the AI what you actually want in plain language. Say I want to travel to Kerala or show me something quieter and it understands. Detects single destination vs multi-destination intent automatically.
 
 **Multi-Stop Itinerary Builder**
-Add 2 or more destinations, set your days and budget, 
-and the AI builds a logical day-by-day circuit with 
-travel time between stops, local food recommendations, 
+Add 2 or more destinations, set your days and budget, and the AI builds a logical day-by-day circuit with travel time between stops, local food recommendations, 
 stay options, and per-day cost estimates.
 
 **Save and Wishlist**
-Save any destination or itinerary to your wishlist. 
-Come back to it whenever you are ready.
+Save any destination or itinerary to your wishlist. Come back to it whenever you are ready.
 
 **Ready to Book**
-When you are ready to commit, the app surfaces links 
-to MakeMyTrip, Booking.com, and Airbnb. Trana helps 
-you decide. Your preferred platform helps you book.
+When you are ready to commit, the app surfaces links to MakeMyTrip, Booking.com, and Airbnb. Trana helps you decide. Your preferred platform helps you book.
 
 ## Tech Stack
 
@@ -58,6 +47,10 @@ you decide. Your preferred platform helps you book.
 | Database | Supabase |
 | AI Engine | Anthropic Claude API |
 | Deployment | Vercel |
+
+## System Architecture
+
+![Trana System Architecture](images/trana_systemarchitecture.JPG)
 
 ## Getting Started
 
