@@ -1,0 +1,73 @@
+Fix the following build errors so the app compiles 
+and deploys successfully.
+
+PROBLEM 1 — TypeScript error in QuizOption.tsx with 
+lucide-react icons causing type mismatch.
+
+FIX: In every file that uses lucide-react icons as props 
+or variables, update the type definition from:
+
+icon: any
+
+to:
+
+icon: React.ReactNode
+
+OR if the icon is being passed as a component reference:
+
+icon: React.ComponentType
+
+Apply this fix across ALL component files that receive 
+or pass lucide-react icons as props, including:
+- QuizOption.tsx or QuizOptionButton.tsx
+- Any component that accepts an icon prop
+- Any component that maps over options with icon fields
+
+PROBLEM 2 — General TypeScript strictness causing 
+build failures.
+
+FIX: Update tsconfig.json to be less strict for the MVP:
+
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+
+The key changes are:
+- strict: false (relaxes all strict type checking)
+- skipLibCheck: true (skips type checking of node_modules)
+- noUnusedLocals: false
+- noUnusedParameters: false
+
+PROBLEM 3 — If mockData.js has icon fields storing 
+emoji strings like "🌿" or "⚡", and TypeScript expects 
+a specific type, fix by changing the interface to accept 
+string for the icon field:
+
+interface QuizOption {
+  id: string
+  label: string
+  icon: string  // emoji string, not a React component
+}
+
+After making these changes:
+1. Run npm run build locally in the shell
+2. Confirm it outputs "build complete" with no errors
+3. Only then attempt deployment

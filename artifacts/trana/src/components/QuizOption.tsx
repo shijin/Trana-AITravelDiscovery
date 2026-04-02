@@ -40,7 +40,7 @@ function getIcon(iconName: string) {
     "smile": "Smile",
   };
   const name = iconMap[iconName] || "Circle";
-  return (LucideIcons as Record<string, React.FC<{ size: number; color: string }>>)[name] || LucideIcons.Circle;
+  return (LucideIcons as unknown as Record<string, React.FC<{ size: number; color: string }>>)[name] || LucideIcons.Circle;
 }
 
 export default function QuizOption({
