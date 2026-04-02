@@ -133,13 +133,15 @@ Use this context to personalise every recommendation.`
         ...m,
         { role: "ai", text: aiText, destinations: aiDests },
       ]);
-    } catch {
+    } catch (err: unknown) {
       setTyping(false);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("Claude API error:", errMsg);
       setMessages((m) => [
         ...m,
         {
           role: "ai",
-          text: "I'm having trouble connecting right now. Please try again in a moment.",
+          text: `Error: ${errMsg}`,
         },
       ]);
     }
