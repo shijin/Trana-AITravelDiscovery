@@ -119,7 +119,7 @@ export default function RecommendationsScreen() {
   }
 
   return (
-    <div style={{ backgroundColor: colors.background, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ backgroundColor: colors.background, minHeight: "100%", display: "flex", flexDirection: "column" }}>
       <div
         style={{
           display: "flex",

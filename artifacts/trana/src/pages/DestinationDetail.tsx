@@ -62,7 +62,7 @@ export default function DestinationDetailScreen() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          height: "100vh",
+          height: "100%",
           padding: 32,
           textAlign: "center",
           backgroundColor: colors.background,
@@ -165,7 +165,7 @@ REMINDER: Return EXACTLY ${totalDays} days in the days array. Not ${totalDays + 
     <div
       style={{
         backgroundColor: colors.background,
-        minHeight: "100vh",
+        minHeight: "100%",
         display: "flex",
         flexDirection: "column",
         position: "relative",

@@ -16,7 +16,7 @@ export default function ItineraryDetailScreen() {
 
   if (!itinerary) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 32 }}>
+      <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 32 }}>
         <span style={{ fontSize: 16, color: colors.mutedForeground, textAlign: "center" }}>
           No itinerary data found. Please go back and build one.
         </span>
@@ -51,7 +51,7 @@ export default function ItineraryDetailScreen() {
   };
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: colors.background }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: colors.background }}>
 
       {/* ── Toast ── */}
       {showToast && (

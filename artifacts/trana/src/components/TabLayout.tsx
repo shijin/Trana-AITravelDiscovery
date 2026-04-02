@@ -12,7 +12,8 @@ const TABS = [
 export default function TabLayout() {
   const location = useLocation();
   const activeIndex = TABS.findIndex((t) => t.path === location.pathname);
-  const idx = Math.max(0, activeIndex);
+  const isOnTabRoute = activeIndex >= 0;
+  const idx = isOnTabRoute ? activeIndex : 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -37,9 +38,10 @@ export default function TabLayout() {
             height: 32,
             borderRadius: 16,
             backgroundColor: "#D6F0EF",
-            transition: "left 0.25s ease",
+            transition: "left 0.25s ease, opacity 0.15s ease",
             pointerEvents: "none",
             zIndex: 0,
+            opacity: isOnTabRoute ? 1 : 0,
           }}
         />
         {TABS.map(({ path, label, Icon }, i) => {

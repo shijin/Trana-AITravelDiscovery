@@ -38,7 +38,7 @@ export default function ReadyToBookScreen() {
 
   if (!itinerary) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 32 }}>
+      <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, padding: 32 }}>
         <span style={{ fontSize: 16, color: colors.mutedForeground, textAlign: "center" }}>
           No trip data found. Please go back and build an itinerary.
         </span>
@@ -56,7 +56,7 @@ export default function ReadyToBookScreen() {
   const lastDest: string = itinerary.days?.[itinerary.days.length - 1]?.destination || firstDest;
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: colors.background, overflowY: "auto" }} className="hide-scrollbar">
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: colors.background, overflowY: "auto" }} className="hide-scrollbar">
 
       {/* ── Header ── */}
       <div

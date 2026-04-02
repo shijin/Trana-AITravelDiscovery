@@ -356,7 +356,7 @@ REMINDER: Return EXACTLY ${totalDays} days in the days array. Not ${totalDays + 
   return (
     <div
       style={{
-        height: "100vh",
+        height: "100%",
         display: "flex",
         flexDirection: "column",
         backgroundColor: colors.background,

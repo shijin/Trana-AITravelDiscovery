@@ -35,19 +35,21 @@ export default function App() {
           }}
         >
           <Routes>
+            {/* Routes WITH bottom nav */}
             <Route element={<TabLayout />}>
-              <Route path="/" element={<Home />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/recommendations" element={<Recommendations />} />
+              <Route path="/destination/:id" element={<DestinationDetail />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/itinerary-detail" element={<ItineraryDetail />} />
+              <Route path="/book" element={<ReadyToBook />} />
             </Route>
+            {/* Routes WITHOUT bottom nav */}
+            <Route path="/" element={<Home />} />
             <Route path="/quiz" element={<Quiz />} />
-            <Route path="/recommendations" element={<Recommendations />} />
-            <Route path="/destination/:id" element={<DestinationDetail />} />
-            <Route path="/chat" element={<Chat />} />
             <Route path="/itinerary" element={<Itinerary />} />
-            <Route path="/itinerary-detail" element={<ItineraryDetail />} />
-            <Route path="/book" element={<ReadyToBook />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
