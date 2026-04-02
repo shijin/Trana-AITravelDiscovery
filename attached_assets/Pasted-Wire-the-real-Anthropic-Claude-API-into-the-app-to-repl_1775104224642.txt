@@ -1,0 +1,359 @@
+Wire the real Anthropic Claude API into the app to replace 
+all mock chat responses with genuine AI responses.
+
+This is the most important change in the entire project.
+Do NOT change any UI, routing, colors, or screen layouts.
+Only replace the mock response logic with real API calls.
+
+═══════════════════════════════════════════
+STEP 1 — ADD ENVIRONMENT VARIABLE
+═══════════════════════════════════════════
+
+Add this to the .env file:
+VITE_ANTHROPIC_API_KEY=your_claude_api_key_here
+
+Also add it to Vercel environment variables after deployment.
+
+═══════════════════════════════════════════
+STEP 2 — CREATE AI SERVICE FILE
+═══════════════════════════════════════════
+
+Create src/lib/claude.ts:
+
+const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
+
+export async function callClaude(
+  systemPrompt: string,
+  messages: { role: 'user' | 'assistant', content: string }[],
+  maxTokens: number = 1000
+): Promise<string> {
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: messages
+    })
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(`Claude API error: ${error.error?.message}`)
+  }
+
+  const data = await response.json()
+  return data.content[0].text
+}
+
+═══════════════════════════════════════════
+STEP 3 — CHAT REFINEMENT SCREEN
+═══════════════════════════════════════════
+
+In the Chat Refinement screen (/chat), replace the 
+entire mock response logic with this:
+
+SYSTEM PROMPT for chat refinement:
+const CHAT_SYSTEM_PROMPT = `You are Trāna's AI travel 
+discovery assistant — a warm, knowledgeable Indian travel 
+expert who deeply understands the diversity of travel 
+experiences across India.
+
+Your role is to help travelers discover the perfect 
+destination based on their context and preferences.
+
+CRITICAL RULES:
+1. Always recommend real Indian destinations only
+2. Keep responses concise — maximum 3 sentences of text
+3. Always end your response with exactly 3 destination 
+   recommendations in this JSON format on a new line:
+   DESTINATIONS: [
+     {"name": "Destination Name", "state": "State", 
+      "reason": "One sentence why it fits perfectly"},
+     {"name": "Destination Name", "state": "State", 
+      "reason": "One sentence why it fits perfectly"},
+     {"name": "Destination Name", "state": "State", 
+      "reason": "One sentence why it fits perfectly"}
+   ]
+4. Match recommendations to the user's budget, 
+   companion type, activity level, and mood
+5. Never recommend the same destination twice 
+   in a conversation
+6. Be conversational and warm — like a trusted friend 
+   who knows India deeply
+7. If the user mentions a specific state like Kerala, 
+   ONLY recommend destinations within that state
+8. If user mentions budget constraints, 
+   strictly respect them`
+
+CONTEXT INJECTION:
+When calling Claude, inject the user's quiz answers 
+as the first message context:
+
+const quizContext = quizAnswers ? 
+`User context from their travel quiz:
+- Mood: ${quizAnswers.mood}
+- Travel companions: ${quizAnswers.companion}  
+- Trip duration: ${quizAnswers.duration}
+- Budget: ${quizAnswers.budget}
+- Interests: ${quizAnswers.interests?.join(', ')}
+- Activity level: ${quizAnswers.activity}
+- Home city: ${quizAnswers.city}
+
+Use this context to personalise every recommendation.` 
+: 'No quiz context available — ask the user for preferences.'
+
+SENDING MESSAGES:
+When user sends a message:
+
+1. Show typing indicator immediately (3 animated dots)
+
+2. Build messages array from conversation history:
+const messages = [
+  { role: 'user', content: quizContext },
+  { role: 'assistant', content: 'I understand your travel preferences. How can I help you find the perfect destination?' },
+  ...conversationHistory,
+  { role: 'user', content: userMessage }
+]
+
+3. Call Claude:
+const response = await callClaude(
+  CHAT_SYSTEM_PROMPT, 
+  messages,
+  800
+)
+
+4. Parse the response to extract destinations:
+function parseClaudeResponse(response: string) {
+  const destinationsMatch = response.match(
+    /DESTINATIONS:\s*(\[[\s\S]*?\])/
+  )
+  
+  let destinations = []
+  let text = response
+  
+  if (destinationsMatch) {
+    try {
+      destinations = JSON.parse(destinationsMatch[1])
+      text = response
+        .replace(/DESTINATIONS:\s*\[[\s\S]*?\]/, '')
+        .trim()
+    } catch (e) {
+      console.log('Could not parse destinations JSON')
+    }
+  }
+  
+  return { text, destinations }
+}
+
+5. Display the text as an AI chat bubble
+
+6. Display each destination as a full-width card below 
+   the chat bubble with:
+   - Colored circle with first letter (background #D6F0EF, 
+     color #0D7377)
+   - Destination name bold + state in gray
+   - Reason text italic gray below
+   - Chevron right icon
+   - Tap: navigate to /destination/:id if destination 
+     exists in mockData, otherwise show destination name 
+     in a detail-like view
+
+ERROR HANDLING:
+If the API call fails, show this message as AI bubble:
+"I'm having trouble connecting right now. 
+Please try again in a moment."
+Never show a technical error to the user.
+
+═══════════════════════════════════════════
+STEP 4 — PLAN CIRCUIT SCREEN
+═══════════════════════════════════════════
+
+In the Plan Circuit / Itinerary Builder screen, 
+replace the mock itinerary generation with real 
+Claude API call.
+
+SYSTEM PROMPT for itinerary building:
+const ITINERARY_SYSTEM_PROMPT = `You are Trāna's AI 
+itinerary builder — an expert Indian travel planner 
+who creates detailed, practical, day-by-day travel 
+circuits for Indian travelers.
+
+CRITICAL RULES:
+1. Only plan trips within India
+2. Always respect the user's exact destinations — 
+   never substitute or replace them
+3. Always respect the exact number of days requested
+4. Distribute days logically across destinations 
+   based on how much there is to see
+5. Always respond in this exact JSON format 
+   and nothing else:
+
+{
+  "title": "Destination1 + Destination2 — X days",
+  "startCity": "city name",
+  "totalDays": number,
+  "estimatedBudget": "₹XX,XXX",
+  "days": [
+    {
+      "day": 1,
+      "destination": "Exact destination name",
+      "travelInfo": "How to get there from previous stop or start city with duration",
+      "experiences": [
+        "Specific experience 1",
+        "Specific experience 2", 
+        "Specific experience 3"
+      ],
+      "food": "Specific local dish + where to eat it",
+      "stay": "Type of accommodation + price range per night",
+      "estimatedDailyCost": "₹X,XXX"
+    }
+  ],
+  "totalEstimatedCost": "₹XX,XXX",
+  "proTip": "One genuinely useful insider tip for this circuit"
+}`
+
+CALLING CLAUDE FOR ITINERARY:
+When user taps "Build my circuit" button:
+
+1. Show full screen loading overlay with animated 
+   route line and text "Planning your circuit..."
+
+2. Build the prompt:
+const userPrompt = 
+`Build a ${totalDays}-day travel circuit starting 
+from ${startCity}.
+
+Destinations to include (in this order): 
+${destinations.join(' → ')}
+
+Budget range: ${budget}
+
+Important: Include ALL the destinations I listed. 
+Do not add or remove any destinations.
+Distribute the ${totalDays} days across 
+${destinations.length} destinations logically.`
+
+3. Call Claude:
+const response = await callClaude(
+  ITINERARY_SYSTEM_PROMPT,
+  [{ role: 'user', content: userPrompt }],
+  2000
+)
+
+4. Parse the JSON response:
+function parseItinerary(response: string) {
+  try {
+    // Try direct parse first
+    return JSON.parse(response)
+  } catch {
+    // Extract JSON from response if wrapped in text
+    const jsonMatch = response.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0])
+      } catch {
+        return null
+      }
+    }
+    return null
+  }
+}
+
+5. If parsing succeeds:
+   Navigate to /itinerary/detail passing the 
+   parsed itinerary as router state
+
+6. If parsing fails:
+   Show error toast: 
+   "Could not build your circuit. Please try again."
+   Hide loading overlay
+
+ITINERARY DETAIL SCREEN UPDATE:
+Update the itinerary detail screen to render from 
+the dynamic Claude response instead of hardcoded data.
+
+It should read from router state:
+const { itinerary } = useLocation().state || {}
+
+Render:
+- Title: itinerary.title
+- Summary bar: itinerary.startCity + itinerary.totalDays 
+  + itinerary.estimatedBudget
+- Destination chain: extracted from itinerary.days
+  mapped as "City1 → City2 → City3"
+- Day cards: itinerary.days.map(day => DayCard)
+- Pro tip card at bottom: itinerary.proTip
+  (gold background #FDF3DC, border-left 4px #C9962B)
+- Total cost: itinerary.totalEstimatedCost
+
+Each day card renders:
+- Day number + destination name in header
+- travelInfo row with bus/train icon
+- experiences as bullet list
+- food row with 🍛 icon
+- stay row with 🏨 icon  
+- estimatedDailyCost right-aligned
+
+═══════════════════════════════════════════
+STEP 5 — LOADING STATES
+═══════════════════════════════════════════
+
+For Chat screen — while waiting for Claude:
+Show animated typing indicator:
+- 3 dots in a row, each 8px circle, color #0D7377
+- Animate: scale 0.6 → 1.2 → 0.6
+- Stagger: 200ms between each dot
+- Loop infinitely until response arrives
+- Show inside a chat bubble shape (gray background)
+
+For Plan Circuit — while Claude builds itinerary:
+Full screen overlay (background #1A3C5E, opacity 0.95):
+- Animated route line drawing across screen 
+  (CSS animation, white dashed line, 2s loop)
+- Destination names appearing one by one with 
+  fade-in animation
+- Text: "Building your circuit..." white 18px
+- Subtext: "Checking routes, experiences, 
+  and local tips..." white opacity 0.7 14px
+
+═══════════════════════════════════════════
+STEP 6 — ADD API KEY TO VERCEL
+═══════════════════════════════════════════
+
+After making these code changes, remind the developer to:
+1. Add VITE_ANTHROPIC_API_KEY to Vercel environment 
+   variables in the Vercel dashboard
+2. Redeploy after adding the variable
+3. Test both chat and plan circuit on the live URL
+
+═══════════════════════════════════════════
+IMPORTANT NOTES
+═══════════════════════════════════════════
+
+1. The API key is exposed in the frontend — this is 
+   acceptable for a demo/portfolio project but should 
+   be moved to a backend API route in production.
+   The header 'anthropic-dangerous-direct-browser-access'
+   must be included to allow browser-side calls.
+
+2. Keep all existing mock data and the quiz flow 
+   completely unchanged. Only the chat response 
+   logic and itinerary generation logic change.
+
+3. Do not change any screen layouts, colors, 
+   typography, or navigation.
+
+4. Handle network errors gracefully — never show 
+   raw API errors to the user.
+
+5. The conversation history in Chat must persist 
+   within the session so Claude has full context 
+   of the conversation when responding.

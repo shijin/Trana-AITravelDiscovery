@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ChevronDown, Plus, X } from "lucide-react";
 import { useColors } from "@/hooks/useColors";
+import { callClaude } from "@/lib/claude";
 
 const CITIES = ["Mumbai", "Delhi", "Bengaluru", "Hyderabad", "Pune", "Chennai", "Kolkata", "Ahmedabad", "Kochi", "Jaipur"];
 const DAYS_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -12,6 +13,55 @@ const SUGGESTIONS = [
   "Jaisalmer", "Udaipur", "Ladakh", "Spiti", "Darjeeling",
   "Kochi", "Andaman", "Pondicherry", "Mysuru", "Ooty",
 ];
+
+const ITINERARY_SYSTEM_PROMPT = `You are Trāna's AI itinerary builder — an expert Indian travel planner who creates detailed, practical, day-by-day travel circuits for Indian travelers.
+
+CRITICAL RULES:
+1. Only plan trips within India
+2. Always respect the user's exact destinations — never substitute or replace them
+3. Always respect the exact number of days requested
+4. Distribute days logically across destinations based on how much there is to see
+5. Always respond in this exact JSON format and nothing else:
+
+{
+  "title": "Destination1 + Destination2 — X days",
+  "startCity": "city name",
+  "totalDays": number,
+  "estimatedBudget": "₹XX,XXX",
+  "days": [
+    {
+      "day": 1,
+      "destination": "Exact destination name",
+      "travelInfo": "How to get there from previous stop or start city with duration",
+      "experiences": [
+        "Specific experience 1",
+        "Specific experience 2",
+        "Specific experience 3"
+      ],
+      "food": "Specific local dish + where to eat it",
+      "stay": "Type of accommodation + price range per night",
+      "estimatedDailyCost": "₹X,XXX"
+    }
+  ],
+  "totalEstimatedCost": "₹XX,XXX",
+  "proTip": "One genuinely useful insider tip for this circuit"
+}`;
+
+function parseItinerary(response: string) {
+  try {
+    return JSON.parse(response);
+  } catch {
+    const match = response.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
 
 export default function ItineraryScreen() {
   const colors = useColors();
@@ -26,6 +76,8 @@ export default function ItineraryScreen() {
     preselected ? [preselected.name] : []
   );
   const [inputValue, setInputValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
 
   const addDest = (name: string) => {
     const trimmed = name.trim();
@@ -39,11 +91,43 @@ export default function ItineraryScreen() {
     setDestNames((prev) => prev.filter((d) => d !== name));
   };
 
-  const handleBuild = () => {
+  const handleBuild = async () => {
     if (destNames.length === 0) return;
-    navigate("/itinerary-detail", {
-      state: { destNames, days, budget, startCity: city },
-    });
+    setLoading(true);
+    setLoadingStep(0);
+
+    const stepTimer = setInterval(() => {
+      setLoadingStep((s) => Math.min(s + 1, destNames.length - 1));
+    }, 1200);
+
+    const userPrompt = `Build a ${days}-day travel circuit starting from ${city}.
+
+Destinations to include (in this order): ${destNames.join(" → ")}
+
+Budget range: ${budget}
+
+Important: Include ALL the destinations I listed. Do not add or remove any destinations. Distribute the ${days} days across ${destNames.length} destination${destNames.length > 1 ? "s" : ""} logically.`;
+
+    try {
+      const response = await callClaude(
+        ITINERARY_SYSTEM_PROMPT,
+        [{ role: "user", content: userPrompt }],
+        2000
+      );
+      clearInterval(stepTimer);
+      const itinerary = parseItinerary(response);
+      if (itinerary) {
+        setLoading(false);
+        navigate("/itinerary-detail", { state: { itinerary } });
+      } else {
+        setLoading(false);
+        alert("Could not build your circuit. Please try again.");
+      }
+    } catch {
+      clearInterval(stepTimer);
+      setLoading(false);
+      alert("Could not build your circuit. Please try again.");
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -62,7 +146,75 @@ export default function ItineraryScreen() {
   };
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: colors.background }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", backgroundColor: colors.background, position: "relative" }}>
+      {loading && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundColor: "rgba(26, 60, 94, 0.95)",
+            zIndex: 50,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 32,
+          }}
+        >
+          <div style={{ marginBottom: 32, width: "100%" }}>
+            <div
+              style={{
+                height: 2,
+                backgroundColor: "rgba(255,255,255,0.2)",
+                borderRadius: 2,
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  backgroundColor: "#14A085",
+                  borderRadius: 2,
+                  animation: "line-grow 2s ease-in-out infinite",
+                }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24, flexWrap: "wrap", justifyContent: "center" }}>
+            {destNames.map((name, i) => (
+              <React.Fragment key={name}>
+                <span
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "#fff",
+                    opacity: i <= loadingStep ? 1 : 0.3,
+                    transition: "opacity 0.6s ease",
+                  }}
+                >
+                  {name}
+                </span>
+                {i < destNames.length - 1 && (
+                  <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 18 }}>→</span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+
+          <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 10 }}>
+            Building your circuit...
+          </span>
+          <span style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", textAlign: "center" }}>
+            Checking routes, experiences, and local tips...
+          </span>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -84,7 +236,7 @@ export default function ItineraryScreen() {
           <span style={{ fontSize: 18, fontWeight: 700, color: colors.primary, display: "block" }}>
             Build a circuit
           </span>
-          <span style={{ fontSize: 12, color: colors.mutedForeground }}>Multi-destination trip planner</span>
+          <span style={{ fontSize: 12, color: colors.mutedForeground }}>AI-powered multi-destination planner</span>
         </div>
       </div>
 
@@ -178,26 +330,29 @@ export default function ItineraryScreen() {
             <div style={{ marginTop: 12 }}>
               <p style={{ margin: "0 0 8px", fontSize: 12, color: colors.mutedForeground }}>Popular choices</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {SUGGESTIONS.filter((s) => !destNames.find((d) => d.toLowerCase() === s.toLowerCase())).slice(0, 10).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => addDest(s)}
-                    style={{
-                      paddingLeft: 12,
-                      paddingRight: 12,
-                      paddingTop: 5,
-                      paddingBottom: 5,
-                      borderRadius: 20,
-                      border: `1px solid ${colors.border}`,
-                      backgroundColor: colors.card,
-                      fontSize: 13,
-                      color: colors.foreground,
-                      cursor: "pointer",
-                    }}
-                  >
-                    + {s}
-                  </button>
-                ))}
+                {SUGGESTIONS
+                  .filter((s) => !destNames.find((d) => d.toLowerCase() === s.toLowerCase()))
+                  .slice(0, 10)
+                  .map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => addDest(s)}
+                      style={{
+                        paddingLeft: 12,
+                        paddingRight: 12,
+                        paddingTop: 5,
+                        paddingBottom: 5,
+                        borderRadius: 20,
+                        border: `1px solid ${colors.border}`,
+                        backgroundColor: colors.card,
+                        fontSize: 13,
+                        color: colors.foreground,
+                        cursor: "pointer",
+                      }}
+                    >
+                      + {s}
+                    </button>
+                  ))}
               </div>
             </div>
           </div>
@@ -249,7 +404,7 @@ export default function ItineraryScreen() {
       <div style={{ padding: "12px 16px 20px", backgroundColor: colors.card, borderTop: `1px solid ${colors.border}`, flexShrink: 0 }}>
         <button
           onClick={handleBuild}
-          disabled={destNames.length === 0}
+          disabled={destNames.length === 0 || loading}
           style={{
             width: "100%",
             height: 52,
@@ -263,7 +418,9 @@ export default function ItineraryScreen() {
             transition: "background-color 0.2s",
           }}
         >
-          {destNames.length === 0 ? "Add at least one destination" : `Build itinerary — ${destNames.length} stop${destNames.length > 1 ? "s" : ""}`}
+          {destNames.length === 0
+            ? "Add at least one destination"
+            : `Build itinerary — ${destNames.length} stop${destNames.length > 1 ? "s" : ""}`}
         </button>
       </div>
     </div>

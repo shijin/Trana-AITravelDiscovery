@@ -1,32 +1,84 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, ChevronRight } from "lucide-react";
 import { useColors } from "@/hooks/useColors";
-import { initialChatMessage } from "@/data/mockData";
+import { initialChatMessage, destinations } from "@/data/mockData";
 import ChatBubble from "@/components/ChatBubble";
 import TypingIndicator from "@/components/TypingIndicator";
+import { useApp } from "@/context/AppContext";
+import { callClaude } from "@/lib/claude";
+
+interface RecommendedDest {
+  name: string;
+  state: string;
+  reason: string;
+}
 
 interface Message {
   role: "user" | "ai";
   text: string;
+  destinations?: RecommendedDest[];
 }
 
-const AI_RESPONSES = [
-  "That sounds like a great plan! Based on what you've told me, I'd suggest starting from Bengaluru and working your way south — Coorg → Wayanad → Munnar is a classic 7-day circuit under ₹20,000 per person.",
-  "For a 4-day trip from Delhi, Rishikesh + Haridwar is hard to beat. You'll catch the Ganga Aarti in Haridwar on day 1, then white-water rafting in Rishikesh on day 3. Budget around ₹12,000 total.",
-  "If you're travelling with seniors, I'd actually suggest Mysuru over Jaipur this season — better medical infrastructure, cooler climate, and far fewer stairs at the main sights.",
-  "Interesting combination! Hampi + Goa in 6 days is doable — 3 nights in Hampi, then an overnight bus to Goa. Total budget around ₹18,000 for two including accommodation.",
-  "For that budget, Kasol is perfect for October. Book your Chalal trek in advance — the guesthouses fill up fast. Total trip around ₹11,000 from Delhi including transport.",
-];
+interface ConversationTurn {
+  role: "user" | "assistant";
+  content: string;
+}
 
-let aiResponseIndex = 0;
+const CHAT_SYSTEM_PROMPT = `You are Trāna's AI travel discovery assistant — a warm, knowledgeable Indian travel expert who deeply understands the diversity of travel experiences across India.
+
+Your role is to help travelers discover the perfect destination based on their context and preferences.
+
+CRITICAL RULES:
+1. Always recommend real Indian destinations only
+2. Keep responses concise — maximum 3 sentences of text
+3. Always end your response with exactly 3 destination recommendations in this JSON format on a new line:
+   DESTINATIONS: [
+     {"name": "Destination Name", "state": "State", "reason": "One sentence why it fits perfectly"},
+     {"name": "Destination Name", "state": "State", "reason": "One sentence why it fits perfectly"},
+     {"name": "Destination Name", "state": "State", "reason": "One sentence why it fits perfectly"}
+   ]
+4. Match recommendations to the user's budget, companion type, activity level, and mood
+5. Never recommend the same destination twice in a conversation
+6. Be conversational and warm — like a trusted friend who knows India deeply
+7. If the user mentions a specific state like Kerala, ONLY recommend destinations within that state
+8. If user mentions budget constraints, strictly respect them`;
+
+function parseClaudeResponse(response: string): { text: string; destinations: RecommendedDest[] } {
+  const match = response.match(/DESTINATIONS:\s*(\[[\s\S]*?\])/);
+  let destinations: RecommendedDest[] = [];
+  let text = response;
+
+  if (match) {
+    try {
+      destinations = JSON.parse(match[1]);
+      text = response.replace(/DESTINATIONS:\s*\[[\s\S]*?\]/, "").trim();
+    } catch {
+      // keep text as-is if JSON fails
+    }
+  }
+
+  return { text, destinations };
+}
+
+function findMockDest(name: string) {
+  const lower = name.toLowerCase();
+  return destinations.find(
+    (d) =>
+      d.name.toLowerCase() === lower ||
+      d.name.toLowerCase().includes(lower) ||
+      lower.includes(d.name.toLowerCase())
+  );
+}
 
 export default function ChatScreen() {
   const colors = useColors();
   const navigate = useNavigate();
+  const { quizAnswers } = useApp();
   const [messages, setMessages] = useState<Message[]>([
     { role: "ai", text: initialChatMessage.text },
   ]);
+  const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -35,25 +87,94 @@ export default function ChatScreen() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const text = input.trim();
-    if (!text) return;
+    if (!text || typing) return;
     setInput("");
     setMessages((m) => [...m, { role: "user", text }]);
     setTyping(true);
-    const delay = 800 + Math.random() * 800;
-    setTimeout(() => {
-      const response = AI_RESPONSES[aiResponseIndex % AI_RESPONSES.length];
-      aiResponseIndex++;
+
+    const quizContext = quizAnswers && Object.keys(quizAnswers).length > 0
+      ? `User context from their travel quiz:
+- Mood: ${quizAnswers.mood || "not specified"}
+- Travel companions: ${quizAnswers.companion || "not specified"}
+- Trip duration: ${quizAnswers.duration || "not specified"}
+- Budget: ${quizAnswers.budget || "not specified"}
+- Interests: ${quizAnswers.interests?.join(", ") || "not specified"}
+- Activity level: ${quizAnswers.activity || "not specified"}
+- Home city: ${quizAnswers.city || "not specified"}
+
+Use this context to personalise every recommendation.`
+      : "No quiz context available — ask the user for preferences.";
+
+    const apiMessages: ConversationTurn[] = [
+      { role: "user", content: quizContext },
+      {
+        role: "assistant",
+        content:
+          "I understand your travel preferences. How can I help you find the perfect destination?",
+      },
+      ...conversationHistory,
+      { role: "user", content: text },
+    ];
+
+    try {
+      const response = await callClaude(CHAT_SYSTEM_PROMPT, apiMessages, 800);
+      const { text: aiText, destinations: aiDests } = parseClaudeResponse(response);
+
+      setConversationHistory((h) => [
+        ...h,
+        { role: "user", content: text },
+        { role: "assistant", content: response },
+      ]);
+
       setTyping(false);
-      setMessages((m) => [...m, { role: "ai", text: response }]);
-    }, delay);
+      setMessages((m) => [
+        ...m,
+        { role: "ai", text: aiText, destinations: aiDests },
+      ]);
+    } catch {
+      setTyping(false);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "ai",
+          text: "I'm having trouble connecting right now. Please try again in a moment.",
+        },
+      ]);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  const handleDestTap = (dest: RecommendedDest) => {
+    const mock = findMockDest(dest.name);
+    if (mock) {
+      navigate(`/destination/${mock.id}`, { state: { dest: mock } });
+    } else {
+      navigate(`/destination/0`, {
+        state: {
+          dest: {
+            id: 0,
+            name: dest.name,
+            state: dest.state,
+            tagline: dest.reason,
+            heroGradient: ["#0D7377", "#14A085"],
+            tags: [],
+            highlights: [],
+            vibes: [],
+            budgetPerDay: 0,
+            travelTime: "",
+            season: "",
+            description: dest.reason,
+          },
+        },
+      });
     }
   };
 
@@ -96,7 +217,74 @@ export default function ChatScreen() {
         className="hide-scrollbar"
       >
         {messages.map((msg, i) => (
-          <ChatBubble key={i} role={msg.role} text={msg.text} />
+          <div key={i}>
+            <ChatBubble role={msg.role} text={msg.text} />
+            {msg.role === "ai" && msg.destinations && msg.destinations.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4, marginBottom: 12, marginLeft: 12 }}>
+                {msg.destinations.map((dest, di) => (
+                  <button
+                    key={di}
+                    onClick={() => handleDestTap(dest)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: `1px solid ${colors.border}`,
+                      backgroundColor: colors.card,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      width: "100%",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 18,
+                        backgroundColor: "#D6F0EF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#0D7377" }}>
+                        {dest.name.charAt(0)}
+                      </span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: colors.foreground }}>
+                          {dest.name}
+                        </span>
+                        <span style={{ fontSize: 12, color: colors.mutedForeground }}>
+                          {dest.state}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: colors.mutedForeground,
+                          fontStyle: "italic",
+                          display: "block",
+                          lineHeight: "16px",
+                          marginTop: 2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {dest.reason}
+                      </span>
+                    </div>
+                    <ChevronRight size={16} color={colors.mutedForeground} style={{ flexShrink: 0 }} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
         {typing && <TypingIndicator />}
         <div ref={bottomRef} />
@@ -140,14 +328,14 @@ export default function ChatScreen() {
         />
         <button
           onClick={sendMessage}
-          disabled={!input.trim()}
+          disabled={!input.trim() || typing}
           style={{
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: input.trim() ? colors.tealDark : colors.muted,
+            backgroundColor: input.trim() && !typing ? colors.tealDark : colors.muted,
             border: "none",
-            cursor: input.trim() ? "pointer" : "not-allowed",
+            cursor: input.trim() && !typing ? "pointer" : "not-allowed",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -155,7 +343,7 @@ export default function ChatScreen() {
             transition: "background-color 0.15s",
           }}
         >
-          <Send size={18} color={input.trim() ? "#fff" : colors.mutedForeground} />
+          <Send size={18} color={input.trim() && !typing ? "#fff" : colors.mutedForeground} />
         </button>
       </div>
     </div>
