@@ -9,6 +9,10 @@ budget, travel companions, and interests - then gives
 you a small number of destination recommendations with 
 clear, personalised reasons why each one fits you.
 
+## Landing Page
+
+![Landing Page](images/Mobile Front.JPG)
+
 ## Live Demo
 
 [Demo Link](https://trana-ai-travel-api-server.vercel.app/)  
