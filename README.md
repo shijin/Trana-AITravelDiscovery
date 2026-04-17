@@ -11,7 +11,7 @@ clear, personalised reasons why each one fits you.
 
 ## Landing Page
 
-![Landing Page](images/Mobile Front.JPG)
+![Landing Page](images/landing_page.JPG)
 
 ## Live Demo
 
