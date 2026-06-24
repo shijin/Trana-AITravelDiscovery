@@ -1,0 +1,300 @@
+description: "Trana Eval - Recommendations - 12 Cases - D1 D2 D4"
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    config:
+      max_tokens: 1200
+
+prompts:
+  - "You are Trana's AI travel discovery assistant for Indian travelers.\n\nUser context from quiz:\n- Mood: {{mood}}\n- Travel companions: {{companion}}\n- Trip duration: {{duration}}\n- Total budget: {{budget}}\n- Interests: {{interests}}\n- Activity level: {{activity}}\n- Home city: {{city}}\n\nRules:\n1. Return exactly 3 to 5 destination recommendations.\n2. Prefer destinations where estimated cost falls in the lower to middle of the stated budget range. Do not push to the upper limit.\n3. When user interests clearly map to a specific state or region, prioritise destinations from that state. Do not dilute with neighboring state destinations.\n4. Return RAW JSON only. No markdown. No code fences. No triple backticks.\n5. Start with DESTINATIONS: followed immediately by the JSON array.\n6. No text before or after the JSON.\n\nDESTINATIONS: [{\"name\": \"Destination Name\", \"state\": \"State\", \"reason\": \"Personalised reason referencing at least two specific user inputs\", \"estimatedCost\": 12000, \"activityLevel\": \"low\", \"companionFit\": [\"solo\"]}]"
+
+tests:
+
+  # ─────────────────────────────────────────
+  # D1 - RECOMMENDATION RELEVANCE - 4 CASES
+  # ─────────────────────────────────────────
+
+  - description: "D1-TC01 - Senior couple low activity must not get trekking destinations"
+    vars:
+      mood: "Comfortable and want to relax"
+      companion: "senior couple"
+      duration: "4 to 5 days"
+      budget: "Rs 40000 to Rs 60000"
+      interests: "Heritage, spiritual, comfort"
+      activity: "low"
+      city: "Pune"
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/DESTINATIONS:\s*(\[[\s\S]*\])/);
+          if (!match) return { pass: false, score: 0, reason: "No DESTINATIONS array found. Output: " + output.substring(0, 200) };
+          try {
+            const clean = match[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            const dests = JSON.parse(clean);
+            const highActivity = dests.filter(d => d.activityLevel === "high");
+            const badDests = ["Kasol", "Spiti", "Meghalaya", "Ziro", "Ladakh", "Rishikesh", "Kedarnath"];
+            const flagged = dests.filter(d => badDests.some(b => d.name.toLowerCase().includes(b.toLowerCase())));
+            const overBudget = dests.filter(d => d.estimatedCost > 60000);
+            const upperRange = dests.filter(d => d.estimatedCost > 55000);
+            if (overBudget.length > 0) return { pass: false, score: 1, reason: "Over budget destinations: " + overBudget.map(d => d.name + " Rs " + d.estimatedCost).join(", ") };
+            if (highActivity.length > 0) return { pass: false, score: 1, reason: "High activity destinations for senior: " + highActivity.map(d => d.name).join(", ") };
+            if (flagged.length > 0) return { pass: false, score: 1, reason: "Inappropriate for seniors: " + flagged.map(d => d.name).join(", ") };
+            if (upperRange.length > 2) return { pass: false, score: 2, reason: "Too many destinations near upper budget limit: " + upperRange.map(d => d.name + " Rs " + d.estimatedCost).join(", ") };
+            return { pass: true, score: 3, reason: "All destinations appropriate for senior travelers within conservative budget range" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D1-TC02 - Budget solo traveler must only see destinations under Rs 15000"
+    vars:
+      mood: "Curious and want to explore"
+      companion: "solo"
+      duration: "3 to 4 days"
+      budget: "Under Rs 15000"
+      interests: "Nature, local culture, food"
+      activity: "moderate"
+      city: "Hyderabad"
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/DESTINATIONS:\s*(\[[\s\S]*\])/);
+          if (!match) return { pass: false, score: 0, reason: "No DESTINATIONS array found. Output: " + output.substring(0, 200) };
+          try {
+            const clean = match[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            const dests = JSON.parse(clean);
+            const overBudget = dests.filter(d => d.estimatedCost > 15000);
+            const nearLimit = dests.filter(d => d.estimatedCost > 13000);
+            if (overBudget.length > 0) return { pass: false, score: 1, reason: "Destinations exceed Rs 15000 budget: " + overBudget.map(d => d.name + " Rs " + d.estimatedCost).join(", ") };
+            if (nearLimit.length > 1) return { pass: false, score: 2, reason: "Too many destinations near budget ceiling: " + nearLimit.map(d => d.name + " Rs " + d.estimatedCost).join(", ") };
+            return { pass: true, score: 3, reason: "All destinations within budget and conservatively priced" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D1-TC03 - Couple romantic trip must return couple-appropriate destinations"
+    vars:
+      mood: "Romantic and want something special"
+      companion: "couple"
+      duration: "4 to 5 days"
+      budget: "Rs 30000 to Rs 60000"
+      interests: "Heritage, offbeat, food"
+      activity: "moderate"
+      city: "Bengaluru"
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/DESTINATIONS:\s*(\[[\s\S]*\])/);
+          if (!match) return { pass: false, score: 0, reason: "No DESTINATIONS array found. Output: " + output.substring(0, 200) };
+          try {
+            const clean = match[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            const dests = JSON.parse(clean);
+            const coupleMatch = dests.filter(d => d.companionFit && d.companionFit.some(c => c.toLowerCase().includes("couple")));
+            const overBudget = dests.filter(d => d.estimatedCost > 60000);
+            if (overBudget.length > 0) return { pass: false, score: 1, reason: "Over budget: " + overBudget.map(d => d.name).join(", ") };
+            if (coupleMatch.length < 3) return { pass: false, score: 2, reason: "Only " + coupleMatch.length + " of " + dests.length + " destinations marked as couple-friendly" };
+            return { pass: true, score: 3, reason: coupleMatch.length + " couple-appropriate destinations returned within budget" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D1-TC04 - Nature lover high activity must get adventure destinations"
+    vars:
+      mood: "Excited and want to explore"
+      companion: "solo"
+      duration: "6 to 7 days"
+      budget: "Rs 30000 to Rs 50000"
+      interests: "Nature, adventure, offbeat, trekking"
+      activity: "high"
+      city: "Delhi"
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/DESTINATIONS:\s*(\[[\s\S]*\])/);
+          if (!match) return { pass: false, score: 0, reason: "No DESTINATIONS array found. Output: " + output.substring(0, 200) };
+          try {
+            const clean = match[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            const dests = JSON.parse(clean);
+            const highActivity = dests.filter(d => d.activityLevel === "high" || d.activityLevel === "moderate");
+            const adventureDests = ["Spiti", "Ladakh", "Meghalaya", "Kasol", "Rishikesh", "Uttarakhand", "Himachal", "Sikkim", "Ziro", "Darjeeling"];
+            const found = dests.filter(d => adventureDests.some(a => d.name.toLowerCase().includes(a.toLowerCase()) || d.state.toLowerCase().includes(a.toLowerCase())));
+            if (highActivity.length < 2) return { pass: false, score: 1, reason: "Less than 2 high or moderate activity destinations for adventure seeker. Got: " + dests.map(d => d.name + " " + d.activityLevel).join(", ") };
+            if (found.length < 1) return { pass: false, score: 2, reason: "No recognisable adventure destinations returned. Got: " + dests.map(d => d.name).join(", ") };
+            return { pass: true, score: 3, reason: "Adventure destinations correctly returned: " + found.map(d => d.name).join(", ") };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  # ─────────────────────────────────────────
+  # D2 - INTENT AND GEOGRAPHIC ACCURACY - 4 CASES
+  # ─────────────────────────────────────────
+
+  - description: "D2-TC01 - Kerala interests must return majority Kerala destinations"
+    vars:
+      mood: "Relaxed and want nature"
+      companion: "solo"
+      duration: "4 to 5 days"
+      budget: "Under Rs 15000"
+      interests: "Nature, backwaters, Kerala hill stations"
+      activity: "low"
+      city: "Bengaluru"
+    assert:
+      - type: llm-rubric
+        value: |
+          The user has explicitly mentioned Kerala hill stations and backwaters as interests.
+          Evaluate whether the recommendations respect this geographic intent.
+          Score 3 if at least 3 out of 5 destinations are in Kerala such as Munnar, Alleppey, Wayanad, Varkala, Kochi, Thekkady, or Kovalam.
+          Score 2 if only 2 Kerala destinations appear alongside destinations from other states.
+          Score 1 if fewer than 2 Kerala destinations are returned.
+          Score 0 if no destinations are returned.
+
+  - description: "D2-TC02 - Rajasthan heritage interest must return Rajasthan destinations"
+    vars:
+      mood: "Excited and want to explore forts and palaces"
+      companion: "couple"
+      duration: "5 to 6 days"
+      budget: "Rs 30000 to Rs 50000"
+      interests: "Rajasthan heritage, forts, desert, royal culture"
+      activity: "moderate"
+      city: "Mumbai"
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/DESTINATIONS:\s*(\[[\s\S]*\])/);
+          if (!match) return { pass: false, score: 0, reason: "No DESTINATIONS array found. Output: " + output.substring(0, 200) };
+          try {
+            const clean = match[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            const dests = JSON.parse(clean);
+            const rajasthan = dests.filter(d => d.state && d.state.toLowerCase().includes("rajasthan"));
+            if (rajasthan.length < 3) return { pass: false, score: 1, reason: "Only " + rajasthan.length + " Rajasthan destinations for explicit Rajasthan heritage interest. Got: " + dests.map(d => d.name + " " + d.state).join(", ") };
+            if (rajasthan.length < 4) return { pass: false, score: 2, reason: rajasthan.length + " Rajasthan destinations returned but non-Rajasthan destinations included: " + dests.filter(d => !d.state.toLowerCase().includes("rajasthan")).map(d => d.name).join(", ") };
+            return { pass: true, score: 3, reason: rajasthan.length + " Rajasthan destinations correctly returned: " + rajasthan.map(d => d.name).join(", ") };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D2-TC03 - Northeast India interest must return Northeast destinations"
+    vars:
+      mood: "Adventurous and want something completely different"
+      companion: "friends group"
+      duration: "7 days"
+      budget: "Rs 25000 to Rs 40000"
+      interests: "Northeast India, tribal culture, living root bridges, offbeat"
+      activity: "moderate"
+      city: "Kolkata"
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/DESTINATIONS:\s*(\[[\s\S]*\])/);
+          if (!match) return { pass: false, score: 0, reason: "No DESTINATIONS array found. Output: " + output.substring(0, 200) };
+          try {
+            const clean = match[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            const dests = JSON.parse(clean);
+            const northeastStates = ["meghalaya", "assam", "arunachal", "manipur", "nagaland", "mizoram", "tripura", "sikkim"];
+            const northeast = dests.filter(d => northeastStates.some(s => d.state.toLowerCase().includes(s) || d.name.toLowerCase().includes(s)));
+            if (northeast.length < 2) return { pass: false, score: 1, reason: "Only " + northeast.length + " Northeast destinations for explicit Northeast interest. Got: " + dests.map(d => d.name + " " + d.state).join(", ") };
+            return { pass: true, score: 3, reason: northeast.length + " Northeast destinations returned: " + northeast.map(d => d.name).join(", ") };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D2-TC04 - Spiritual interest must return spiritual destinations not beach or adventure"
+    vars:
+      mood: "Seeking peace and inner calm"
+      companion: "solo"
+      duration: "4 to 5 days"
+      budget: "Rs 15000 to Rs 25000"
+      interests: "Spiritual, temples, meditation, ashrams"
+      activity: "low"
+      city: "Mumbai"
+    assert:
+      - type: llm-rubric
+        value: |
+          The user has explicitly stated spiritual, temples, meditation, and ashrams as interests.
+          Evaluate whether the recommendations match this intent.
+          Score 3 if at least 3 destinations are genuinely spiritual such as Varanasi, Rishikesh, Shirdi, Tirupati, Pushkar, Vrindavan, Haridwar, or Bodh Gaya. Reasons must reference spiritual context.
+          Score 2 if only 2 spiritual destinations appear or reasons are generic.
+          Score 1 if beach or adventure destinations appear for a spiritual user seeking peace.
+          Score 0 if no destinations are returned.
+
+  # ─────────────────────────────────────────
+  # D4 - REASONING QUALITY - 4 CASES
+  # ─────────────────────────────────────────
+
+  - description: "D4-TC01 - Burnt out solo rationale must reference specific user inputs"
+    vars:
+      mood: "Exhausted and need quiet"
+      companion: "solo"
+      duration: "3 to 4 days"
+      budget: "Under Rs 15000"
+      interests: "Nature"
+      activity: "low"
+      city: "Mumbai"
+    assert:
+      - type: llm-rubric
+        value: |
+          Evaluate the reason field for each destination recommendation.
+          Score 3 if at least 3 destination reasons explicitly reference two or more of these user inputs: exhausted, need quiet, solo, low activity, under Rs 15000, near Mumbai, or proximity to Mumbai.
+          Score 2 if reasons reference only one user input or only 2 out of 5 reasons are personalised.
+          Score 1 if reasons are generic destination marketing copy with no reference to the user context.
+
+  - description: "D4-TC02 - Senior user rationale must mention accessibility or comfort factors"
+    vars:
+      mood: "Comfortable and want easy travel"
+      companion: "senior couple"
+      duration: "4 to 5 days"
+      budget: "Rs 40000 to Rs 60000"
+      interests: "Heritage, temples, comfort"
+      activity: "low"
+      city: "Chennai"
+    assert:
+      - type: llm-rubric
+        value: |
+          For a senior couple with low activity preference, evaluate whether the destination reasons mention accessibility-relevant factors.
+          Score 3 if at least 3 reasons explicitly mention factors like flat terrain, minimal walking, easy access, comfortable stays, senior-friendly, no steep climbs, good connectivity, or medical facilities nearby.
+          Score 2 if only 1 or 2 reasons mention senior-friendly factors.
+          Score 1 if no reason acknowledges the senior or low-activity context at all.
+
+  - description: "D4-TC03 - Couple rationale must be different from solo rationale for same destination"
+    vars:
+      mood: "Romantic and want a special experience"
+      companion: "couple"
+      duration: "4 to 5 days"
+      budget: "Rs 40000 to Rs 60000"
+      interests: "Offbeat, heritage, food"
+      activity: "moderate"
+      city: "Bengaluru"
+    assert:
+      - type: llm-rubric
+        value: |
+          Evaluate whether the destination reasons are written specifically for a couple seeking romance and offbeat experiences.
+          Score 3 if at least 3 reasons mention couple-specific aspects like romantic sunsets, experiences for two, intimate stays, couple-friendly atmosphere, or romantic dining.
+          Score 2 if reasons are positive but could apply to any traveler and do not specifically address the couple context.
+          Score 1 if reasons read like generic destination descriptions with no romantic or couple context.
+
+  - description: "D4-TC04 - Rationale length must be conversational not too long or too short"
+    vars:
+      mood: "Curious and adventurous"
+      companion: "friends group"
+      duration: "5 to 6 days"
+      budget: "Rs 20000 to Rs 35000"
+      interests: "Adventure, nature, food, offbeat"
+      activity: "high"
+      city: "Bengaluru"
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/DESTINATIONS:\s*(\[[\s\S]*\])/);
+          if (!match) return { pass: false, score: 0, reason: "No DESTINATIONS array found. Output: " + output.substring(0, 200) };
+          try {
+            const clean = match[1].replace(/```json/g, '').replace(/```/g, '').trim();
+            const dests = JSON.parse(clean);
+            const tooLong = dests.filter(d => d.reason && d.reason.length > 320);
+            const tooShort = dests.filter(d => d.reason && d.reason.length < 50);
+            const noReason = dests.filter(d => !d.reason);
+            if (noReason.length > 0) return { pass: false, score: 0, reason: noReason.length + " destinations have no reason field" };
+            if (tooShort.length > 0) return { pass: false, score: 1, reason: tooShort.length + " reasons too short under 50 chars: " + tooShort.map(d => d.name).join(", ") };
+            if (tooLong.length > 1) return { pass: false, score: 2, reason: tooLong.length + " reasons too long over 320 chars. Loses conversational feel: " + tooLong.map(d => d.name).join(", ") };
+            return { pass: true, score: 3, reason: "All reason lengths are appropriately conversational" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }

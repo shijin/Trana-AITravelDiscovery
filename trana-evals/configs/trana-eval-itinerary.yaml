@@ -1,0 +1,213 @@
+description: "Trana Eval - Itinerary Day Count - 8 Cases - D3"
+
+providers:
+  - id: anthropic:messages:claude-sonnet-4-6
+    config:
+      max_tokens: 2000
+
+prompts:
+  - "You are Trana's AI itinerary builder for Indian travelers.\n\nBuild a {{total_days}}-day travel circuit for:\nDestinations: {{destinations}}\nStarting from: {{start_city}}\nBudget: {{budget}}\nTraveling with: {{companion}}\n\nCRITICAL DAY COUNT RULE:\nThe user has requested EXACTLY {{total_days}} days.\nYour days array MUST contain EXACTLY {{total_days}} day objects.\nCount them before responding. If your count is wrong fix it before responding.\nNot {{total_days}} plus 1. Not {{total_days}} minus 1. Exactly {{total_days}}.\n\nCRITICAL COST RULE:\nReturn totalEstimatedCost as a single rupee figure or a range with a maximum gap of Rs 5000.\nExample of acceptable range: Rs 18000 to Rs 22000.\nExample of unacceptable range: Rs 15000 to Rs 35000.\nDo not add explanatory text to the cost field.\n\nCRITICAL FORMAT RULES:\nReturn RAW JSON only. No markdown. No code fences. No triple backticks.\nStart your response with { and end with }\nNo text before or after the JSON.\n\n{\"title\": \"Trip title\", \"totalDays\": {{total_days}}, \"days\": [{\"day\": 1, \"destination\": \"Name\", \"experiences\": [\"exp1\", \"exp2\"], \"food\": \"local food recommendation\", \"stay\": \"accommodation type and price\", \"estimatedDailyCost\": 1500}], \"totalEstimatedCost\": \"Rs XX,XXX\"}"
+
+tests:
+
+  - description: "D3-TC01 - 2-day short trip Pondicherry must return exactly 2 days"
+    vars:
+      total_days: "2"
+      destinations: "Pondicherry"
+      start_city: "Chennai"
+      budget: "Rs 8000 to Rs 12000"
+      companion: "couple"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 2) return { pass: false, score: 1, reason: "Expected 2 days, got " + dayCount };
+            if (itin.totalDays !== 2) return { pass: false, score: 2, reason: "Days array correct but totalDays field shows " + itin.totalDays };
+            return { pass: true, score: 3, reason: "Exactly 2 days returned for short Pondicherry trip" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message + " Raw: " + output.substring(0, 300) };
+          }
+
+  - description: "D3-TC02 - 3-day Mysuru must return exactly 3 days"
+    vars:
+      total_days: "3"
+      destinations: "Mysuru"
+      start_city: "Bengaluru"
+      budget: "Rs 12000 to Rs 20000"
+      companion: "couple"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 3) return { pass: false, score: 1, reason: "Expected 3 days, got " + dayCount };
+            if (itin.totalDays !== 3) return { pass: false, score: 2, reason: "Days array correct but totalDays shows " + itin.totalDays };
+            return { pass: true, score: 3, reason: "Exactly 3 days returned for Mysuru" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D3-TC03 - 5-day Jaisalmer must return exactly 5 days"
+    vars:
+      total_days: "5"
+      destinations: "Jaisalmer"
+      start_city: "Mumbai"
+      budget: "Rs 30000 to Rs 50000"
+      companion: "solo"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 5) return { pass: false, score: 1, reason: "Expected 5 days, got " + dayCount };
+            if (itin.totalDays !== 5) return { pass: false, score: 2, reason: "Days array correct but totalDays shows " + itin.totalDays };
+            return { pass: true, score: 3, reason: "Exactly 5 days returned for Jaisalmer" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D3-TC04 - 7-day Hampi and Gokarna circuit must return exactly 7 days across both destinations"
+    vars:
+      total_days: "7"
+      destinations: "Hampi, Gokarna"
+      start_city: "Hyderabad"
+      budget: "Rs 20000 to Rs 30000"
+      companion: "friends group"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 7) return { pass: false, score: 1, reason: "Expected 7 days, got " + dayCount };
+            const destNames = itin.days.map(d => d.destination.toLowerCase());
+            const hasHampi = destNames.some(d => d.includes("hampi"));
+            const hasGokarna = destNames.some(d => d.includes("gokarna"));
+            if (!hasHampi || !hasGokarna) return { pass: false, score: 2, reason: "7 days correct but missing destination. Has Hampi: " + hasHampi + " Has Gokarna: " + hasGokarna };
+            return { pass: true, score: 3, reason: "Exactly 7 days across Hampi and Gokarna" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D3-TC05 - 10-day Kerala circuit must return exactly 10 days across three destinations"
+    vars:
+      total_days: "10"
+      destinations: "Munnar, Alleppey, Varkala"
+      start_city: "Bengaluru"
+      budget: "Rs 45000 to Rs 60000"
+      companion: "couple"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 10) return { pass: false, score: 1, reason: "Expected 10 days, got " + dayCount };
+            const destNames = itin.days.map(d => d.destination.toLowerCase());
+            const hasMunnar = destNames.some(d => d.includes("munnar"));
+            const hasAlleppey = destNames.some(d => d.includes("alleppey") || d.includes("alappuzha"));
+            const hasVarkala = destNames.some(d => d.includes("varkala"));
+            if (!hasMunnar || !hasAlleppey || !hasVarkala) return { pass: false, score: 2, reason: "10 days correct but missing destinations. Munnar: " + hasMunnar + " Alleppey: " + hasAlleppey + " Varkala: " + hasVarkala };
+            return { pass: true, score: 3, reason: "Exactly 10 days across all three Kerala destinations" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D3-TC06 - Cost range gap must not exceed Rs 5000"
+    vars:
+      total_days: "4"
+      destinations: "Coorg"
+      start_city: "Bengaluru"
+      budget: "Rs 15000 to Rs 25000"
+      companion: "couple"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 4) return { pass: false, score: 1, reason: "Expected 4 days, got " + dayCount };
+            const costField = itin.totalEstimatedCost || "";
+            const numbers = costField.match(/\d+,?\d*/g);
+            if (!numbers || numbers.length === 0) return { pass: false, score: 1, reason: "No cost figure found in totalEstimatedCost: " + costField };
+            if (numbers.length >= 2) {
+              const low = parseInt(numbers[0].replace(/,/g, ''));
+              const high = parseInt(numbers[numbers.length - 1].replace(/,/g, ''));
+              const gap = high - low;
+              if (gap > 5000) return { pass: false, score: 2, reason: "Cost range gap Rs " + gap + " exceeds Rs 5000 maximum. Range: " + costField };
+            }
+            return { pass: true, score: 3, reason: "Day count correct and cost range within acceptable gap. Cost: " + costField };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D3-TC07 - Edge case 1-day itinerary must return exactly 1 day"
+    vars:
+      total_days: "1"
+      destinations: "Pondicherry"
+      start_city: "Chennai"
+      budget: "Rs 3000 to Rs 5000"
+      companion: "solo"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 1) return { pass: false, score: 1, reason: "Expected 1 day, got " + dayCount + ". Edge case failure." };
+            return { pass: true, score: 3, reason: "Exactly 1 day returned for edge case" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
+
+  - description: "D3-TC08 - Day distribution across three destinations must be logical"
+    vars:
+      total_days: "9"
+      destinations: "Jaipur, Jodhpur, Jaisalmer"
+      start_city: "Delhi"
+      budget: "Rs 35000 to Rs 50000"
+      companion: "family"
+    assert:
+      - type: javascript
+        value: |
+          try {
+            const clean = output.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = clean.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return { pass: false, score: 0, reason: "No JSON object found. Output: " + output.substring(0, 200) };
+            const itin = JSON.parse(jsonMatch[0]);
+            const dayCount = itin.days ? itin.days.length : 0;
+            if (dayCount !== 9) return { pass: false, score: 1, reason: "Expected 9 days, got " + dayCount };
+            const destNames = itin.days.map(d => d.destination.toLowerCase());
+            const hasJaipur = destNames.some(d => d.includes("jaipur"));
+            const hasJodhpur = destNames.some(d => d.includes("jodhpur"));
+            const hasJaisalmer = destNames.some(d => d.includes("jaisalmer"));
+            if (!hasJaipur || !hasJodhpur || !hasJaisalmer) return { pass: false, score: 2, reason: "9 days correct but not all three destinations covered. Jaipur: " + hasJaipur + " Jodhpur: " + hasJodhpur + " Jaisalmer: " + hasJaisalmer };
+            return { pass: true, score: 3, reason: "Exactly 9 days distributed across all three Rajasthan destinations" };
+          } catch(e) {
+            return { pass: false, score: 0, reason: "JSON parse failed: " + e.message };
+          }
