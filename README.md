@@ -139,6 +139,22 @@ Each destination includes activity level, companion types,
 budget tiers, food highlights, best travel months, and 
 curated video references.
 
+## AI Evaluation Framework
+
+Trana uses Promptfoo to evaluate the quality of its AI-powered recommendation and itinerary engine.
+
+### Week 1 Results
+
+- Overall pass rate: 95 percent (19/20 test cases)
+- Model evaluated: claude-sonnet-4-6
+- Dimensions: Recommendation Relevance, Geographic Accuracy, Day Count Accuracy, Reasoning Quality
+
+See [trana-evals/](trana-evals/) for full config files, test cases, and findings.
+
+### Key Finding
+
+The model self-detected a day count error in one test case but labeled the excess day instead of deleting it. A targeted prompt fix brought this to resolution in Week 2.
+
 ## Key Product Decisions
 
 **Why context first?**
